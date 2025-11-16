@@ -49,7 +49,8 @@ namespace ROTGBot.Service
                 ThreadId = result.ThreadId,
                 Title = result.Title,
                 Type = result.Type,
-                UserId = result.UserId
+                UserId = result.UserId,
+                Number = result.Number
             };
         }
 
@@ -140,9 +141,28 @@ namespace ROTGBot.Service
             await SetNewsStatus(id, null, "deleted", true, token);           
         }
 
-        public Task CreateNews(long chatId, Guid userId, long? groupId, long? threadId, string type, string title, CancellationToken token)
+        public async Task CreateNews(long chatId, Guid userId, long? groupId, long? threadId, string type, string title, CancellationToken token)
         {
-            return _newsRepo.AddAsync(new News()
+            int? number = null;
+            if(type=="news")
+            {
+                var lastNews = (await _newsRepo.GetAsync(new Filter<News>() { 
+                    Selector = s => !s.IsDeleted && s.Number != null,
+                    Sort = "number desc",
+                    Page = 0,
+                    Size = 1
+                }, token)).FirstOrDefault();
+                if(lastNews == null)
+                {
+                    number = 1;
+                }
+                else
+                {
+                    number = lastNews.Number + 1;
+                }
+            }
+
+            await _newsRepo.AddAsync(new News()
             {
                 IsDeleted = false,
                 Id = Guid.NewGuid(),
@@ -154,7 +174,8 @@ namespace ROTGBot.Service
                 Type = type,
                 GroupId = groupId,
                 ThreadId = threadId,
-                CreatedDate = DateTime.Now
+                CreatedDate = DateTime.Now,
+                Number = number
             }, true, token);
         }
 

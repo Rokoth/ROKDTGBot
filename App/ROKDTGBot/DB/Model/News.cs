@@ -27,5 +27,7 @@ namespace ROTGBot.Db.Model
         public DateTime CreatedDate { get; set; }
         [ColumnName("moderatorid")]
         public Guid? ModeratorId { get; set; }
+        [ColumnName("news")]
+        public int? Number { get; set; }
     }
 }
