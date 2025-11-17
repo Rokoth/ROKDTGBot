@@ -184,6 +184,10 @@ namespace ROTGBot.Service
                                         (cl, chId, userNews, tk) => SendDeleteAdminChoiceHandle(cl, chId, user, userNews, tk), token),
                 "DeleteModeratorChoice" => await SendWithCheckRights(client, user, chatId.Value, callbackQuery.Id, RoleEnum.administrator,
                                         (cl, chId, userNews, tk) => SendDeleteModeratorChoiceHandle(cl, chId, user, userNews, tk), token),
+                "BlockUserChoice" => await SendWithCheckRights(client, user, chatId.Value, callbackQuery.Id, RoleEnum.administrator,
+                                        (cl, chId, userNews, tk) => SendBlockUserChoiceHandle(cl, chId, user, userNews, tk), token),
+                "UnBlockUserChoice" => await SendWithCheckRights(client, user, chatId.Value, callbackQuery.Id, RoleEnum.administrator,
+                                        (cl, chId, userNews, tk) => SendUnBlockUserChoiceHandle(cl, chId, user, userNews, tk), token),
                 "EditButtonChoice" => await SendWithCheckRights(client, user, chatId.Value,  callbackQuery.Id, RoleEnum.administrator,
                                         (cl, chId,  userNews, tk) => SendEditButtonChoiceHandle(cl, chId, user, userNews,  tk), token),
                 "AddAdmin" => await SendWithCheckRights(client, user, chatId.Value,  callbackQuery.Id, RoleEnum.administrator,
@@ -202,6 +206,14 @@ namespace ROTGBot.Service
                                         (cl, chId, userNews, tk) => DeleteModeratorHandle(cl, userId, chId, userNews, tk), token),
                 "DeleteModeratorDecline" => await SendWithCheckRights(client, user, chatId.Value, callbackQuery.Id, RoleEnum.administrator,
                                         (cl, chId, userNews, tk) => DeleteModeratorDeclineHandle(cl, userId, chId, userNews, tk), token),
+                "BlockUser" => await SendWithCheckRights(client, user, chatId.Value, callbackQuery.Id, RoleEnum.administrator,
+                                        (cl, chId, userNews, tk) => BlockUserHandle(cl, userId, chId, userNews, tk), token),
+                "BlockUserDecline" => await SendWithCheckRights(client, user, chatId.Value, callbackQuery.Id, RoleEnum.administrator,
+                                        (cl, chId, userNews, tk) => BlockUserDeclineHandle(cl, userId, chId, userNews, tk), token),
+                "UnBlockUser" => await SendWithCheckRights(client, user, chatId.Value, callbackQuery.Id, RoleEnum.administrator,
+                                        (cl, chId, userNews, tk) => UnBlockUserHandle(cl, userId, chId, userNews, tk), token),
+                "UnBlockUserDecline" => await SendWithCheckRights(client, user, chatId.Value, callbackQuery.Id, RoleEnum.administrator,
+                                        (cl, chId, userNews, tk) => UnBlockUserDeclineHandle(cl, userId, chId, userNews, tk), token),
                 "EditButton" => await SendWithCheckRights(client, user, chatId.Value,  callbackQuery.Id, RoleEnum.administrator,
                                         (cl, chId,  userNews, tk) => EditButtonHandle(cl, userId, chId, userNews,  tk), token),
                 "EditButtonDecline" => await SendWithCheckRights(client, user, chatId.Value,  callbackQuery.Id, RoleEnum.administrator,
@@ -283,7 +295,7 @@ namespace ROTGBot.Service
                 await AddAdminMessageNotFound(client, chatId);
             }
         }
-
+                
         private async Task EditButtonHandle(TelegramBotClient client, Guid moderatorId, long chatId, News? userNews, CancellationToken token)
         {
             if (userNews != null)
@@ -293,6 +305,18 @@ namespace ROTGBot.Service
             else
             {
                 await EditButtonMessageNotFound(client, chatId);
+            }
+        }
+
+        private async Task BlockUserHandle(TelegramBotClient client, Guid moderatorId, long chatId, News? userNews, CancellationToken token)
+        {
+            if (userNews != null)
+            {
+                await BlockUserAccepted(client, moderatorId, chatId, userNews, token);
+            }
+            else
+            {
+                await BlockUserMessageNotFound(client, chatId);
             }
         }
 
@@ -329,6 +353,18 @@ namespace ROTGBot.Service
             else
             {
                 await EditButtonMessageNotFound(client, chatId);
+            }
+        }
+
+        private async Task BlockUserDeclineHandle(TelegramBotClient client, Guid moderatorId, long chatId, News? userNews, CancellationToken token)
+        {
+            if (userNews != null)
+            {
+                await BlockUserDecline(client, moderatorId, chatId, userNews, token);
+            }
+            else
+            {
+                await BlockUserMessageNotFound(client, chatId);
             }
         }
 
@@ -430,11 +466,23 @@ namespace ROTGBot.Service
         {
             if (userNews != null)
             {
+                await SendUserRemember(client, chatId, userNews, token);
+            }
+            else
+            {
+                await SendAddModeratorForUser(client, chatId, user, token);
+            }
+        }
+
+        private async Task SendBlockUserChoiceHandle(TelegramBotClient client, long chatId, Contract.Model.User user, News? userNews, CancellationToken token)
+        {
+            if (userNews != null)
+            {
                 await SendUserRemember(client, chatId, userNews,  token);
             }
             else
             {
-                await SendAddModeratorForUser(client, chatId, user,  token);
+                await SendBlockUserForUser(client, chatId, user,  token);
             }
         }
 

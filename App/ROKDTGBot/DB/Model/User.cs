@@ -18,5 +18,7 @@ namespace ROTGBot.Db.Model
         public bool IsNotify { get; set; }
         [ColumnName("chatid")]
         public long ChatId { get; set; }
+        [ColumnName("isblocked")]
+        public bool IsBlocked { get; set; }
     }
 }

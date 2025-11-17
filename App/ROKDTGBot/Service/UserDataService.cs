@@ -30,7 +30,9 @@ namespace ROTGBot.Service
                     Name = $"{tguser.FirstName} {tguser.LastName} (@{tguser.Username})",
                     TGLogin = tguser.Username,
                     TGId = tguser.Id,
-                    ChatId = chatId
+                    ChatId = chatId,
+                    IsNotify = false,
+                    IsBlocked = false
                 }, true, cancellationToken);
 
                 var userRole = (await _roleRepo.GetAsync(new Filter<Role>() { Selector = s => s.Name == "user" }, cancellationToken)).First();
@@ -60,6 +62,7 @@ namespace ROTGBot.Service
                 Description = user.Description,
                 Id = user.Id,
                 IsNotify = user.IsNotify,
+                IsBlocked = user.IsBlocked,
                 Name = user.Name,
                 Roles = roles,
                 TGId = user.TGId,
@@ -123,6 +126,22 @@ namespace ROTGBot.Service
             user.IsNotify = !user.IsNotify;
             await _userRepo.UpdateAsync(user, true, token);
             return user.IsNotify;
+        }
+
+        public async Task<bool> BlockUser(Guid userId, CancellationToken token)
+        {
+            var user = await _userRepo.GetAsync(userId, token);
+            user.IsBlocked = true;
+            await _userRepo.UpdateAsync(user, true, token);
+            return user.IsNotify;
+        }
+
+        public async Task<bool> UnBlockUser(Guid userId, CancellationToken token)
+        {
+            var user = await _userRepo.GetAsync(userId, token);
+            user.IsBlocked = false;
+            await _userRepo.UpdateAsync(user, true, token);
+            return user.IsBlocked;
         }
     }
 }
