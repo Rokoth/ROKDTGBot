@@ -194,6 +194,10 @@ namespace ROTGBot.Service
                                         (cl, chId,  userNews, tk) => EditButtonHandle(cl, userId, chId, userNews,  tk), token),
                 "EditButtonDecline" => await SendWithCheckRights(client, user, chatId.Value,  callbackQuery.Id, RoleEnum.administrator,
                                         (cl, chId,  userNews, tk) => EditButtonDeclineHandle(cl, userId, chId, userNews,  tk), token),
+                "AnswerNewsChoice" => await SendWithCheckRights(client, user, chatId.Value, callbackQuery.Id, RoleEnum.moderator,
+                                        (cl, chId, userNews, tk) => SendAnswerNewsChoiceHandle(cl, chId, offset, tk), token),
+                "AnswerNews" => await SendWithCheckRights(client, user, chatId.Value, callbackQuery.Id, RoleEnum.moderator,
+                                        (cl, chId, userNews, tk) => SendAnswerNewsHandle(cl, userId, chId, newsId.Value, tk), token),
                 _ => await SendWithCheckRights(client, user, chatId.Value,  callbackQuery.Id, RoleEnum.user,
                                         (cl, chId,  userNews, tk) => SendUserNotImplemented(cl, chId), token),
             };
