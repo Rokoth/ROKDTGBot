@@ -147,6 +147,12 @@ namespace ROTGBot.Service
                 buttonNumber = buttonNumber2;
             }
 
+            if (data.StartsWith("GetSendedNews_") && int.TryParse(data.Split("_")[1], out int buttonNumber3))
+            {
+                data = "GetSendedNews";
+                buttonNumber = buttonNumber3;
+            }
+
             if (data.StartsWith("ApproveNewsChoice_") && int.TryParse(data.Split("_")[1], out int offset1))
             {
                 data = "ApproveNewsChoice";
@@ -166,6 +172,8 @@ namespace ROTGBot.Service
                                         (cl, chId,  userNews, tk) => SendNewsHandle(cl, chId, userNews,  tk), token),
                 "UserReport" => await SendWithCheckRights(client, user, chatId.Value, callbackQuery.Id, RoleEnum.user,
                                         (cl, chId, userNews, tk) => GetUserReportHandle(cl, chId, user, tk), token),
+                "GetSendedNews" => await SendWithCheckRights(client, user, chatId.Value, callbackQuery.Id, RoleEnum.user,
+                                        (cl, chId, userNews, tk) => GetSendedNewsHandle(cl, chId, user, buttonNumber, tk), token),
                 "ModeratorReport" => await SendWithCheckRights(client, user, chatId.Value, callbackQuery.Id, RoleEnum.user,
                                         (cl, chId, userNews, tk) => GetModeratorReportHandle(cl, chId, user, tk), token),
                 "DeleteNews" => await SendWithCheckRights(client, user, chatId.Value,  callbackQuery.Id, RoleEnum.user,
@@ -252,6 +260,11 @@ namespace ROTGBot.Service
         {
             var report = await _newsDataService.GetUserReport(user.Id, token);
             await client.SendMessageAsync(chatId, $"Отчёт по отправленным Вами обращениям:\r\n {report}", cancellationToken: token);
+        }
+
+        private async Task GetSendedNewsHandle(TelegramBotClient cl, long chId, Contract.Model.User user, int? buttonNumber, CancellationToken tk)
+        {
+            
         }
 
         private async Task GetModeratorReportHandle(TelegramBotClient client, long chatId, Contract.Model.User user, CancellationToken token)
@@ -1041,6 +1054,10 @@ namespace ROTGBot.Service
             sendButtons.Add([new InlineKeyboardButton("Отчёт по отправленным обращениям")
                 {
                     CallbackData = "UserReport"
+                }]);
+            sendButtons.Add([new InlineKeyboardButton("Просмотр своих обращений")
+                {
+                    CallbackData = "GetSendedNews"
                 }]);
 
             return sendButtons;
