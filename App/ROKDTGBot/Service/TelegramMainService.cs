@@ -182,6 +182,9 @@ namespace ROTGBot.Service
                                         (cl, chId,  userNews, tk) => SendAddModeratorChoiceHandle(cl, chId, user, userNews,  tk), token),
                 "EditButtonChoice" => await SendWithCheckRights(client, user, chatId.Value,  callbackQuery.Id, RoleEnum.administrator,
                                         (cl, chId,  userNews, tk) => SendEditButtonChoiceHandle(cl, chId, user, userNews,  tk), token),
+                "GetButtonChoice" => await SendWithCheckRights(client, user, chatId.Value, callbackQuery.Id, RoleEnum.administrator,
+                                        (cl, chId, userNews, tk) => SendGetButtonChoiceHandle(cl, chId, user, userNews, tk), token),
+
                 "AddAdmin" => await SendWithCheckRights(client, user, chatId.Value,  callbackQuery.Id, RoleEnum.administrator,
                                         (cl, chId,  userNews, tk) => AddAdminHandle(cl, userId, chId, userNews,  tk), token),
                 "AddAdminDecline" => await SendWithCheckRights(client, user, chatId.Value,  callbackQuery.Id, RoleEnum.administrator,
@@ -436,7 +439,116 @@ namespace ROTGBot.Service
             {
                 await SendEditButtonForUser(client, chatId, user,  token);
             }
-        }                
+        }
+
+        private async Task SendGetButtonChoiceHandle(TelegramBotClient client, long chatId, Contract.Model.User user, News? userNews, CancellationToken token)
+        {
+            if (userNews != null)
+            {
+                await SendUserRemember(client, chatId, userNews, token);
+            }
+            else
+            {
+                await SendGetButtonForUser(client, chatId, user, token);
+            }
+        }
+
+        private async Task SendGetButtonForUser(TelegramBotClient client, long chatId, Contract.Model.User user, CancellationToken token)
+        {
+            var availableButtons = await _buttonsDataService.GetAllButtons(token);
+            if (availableButtons.Count != 0)
+            {
+                var buttonsView = GetButtonsView(availableButtons);
+
+                await client.SendMessageAsync(chatId,
+                    GetButtonsRules(buttonsView),
+                     cancellationToken: token);
+            }
+            else
+            {
+                await client.SendMessageAsync(chatId, "Нет доступных кнопок для добавления пользователю. " +
+                    "Для добавления доступных кнопок добавьте бота в группу и отправьте в чат одно сообщение (для разбивки по темам - отправьте по одному сообщению в каждой из тем)." +
+                    "Пользователь, отправляющий сообщения, должен быть администратором бота.",
+                     cancellationToken: token);
+            }
+
+        }
+
+        private static string? GetButtonsView(List<NewsButton> availableButtons)
+        {           
+            if (availableButtons.Count == 0)
+                return null;
+
+            return string.Join("\n", availableButtons.OrderBy(s => s.ButtonNumber).Select(s => GetButtonName(s, true)));
+        }
+
+        private static string GetButtonName(NewsButton button, bool withSettings)
+        {
+            var buttonName = button.ButtonName ?? "";
+            if (!string.IsNullOrEmpty(button.ButtonName))
+            {
+                if (!string.IsNullOrEmpty(button.ChatName))
+                {
+                    if (!string.IsNullOrEmpty(button.ThreadName))
+                    {
+                        buttonName = $"{buttonName}({button.ChatName}:{button.ThreadName})";
+                    }
+                    else
+                    {
+                        buttonName = $"{buttonName}({button.ChatName})";
+                    }
+                }
+            }
+            else
+            {
+                if (!string.IsNullOrEmpty(button.ChatName))
+                {
+                    if (!string.IsNullOrEmpty(button.ThreadName))
+                    {
+                        buttonName = $"{button.ChatName}:{button.ThreadName}";
+                    }
+                    else
+                    {
+                        buttonName = $"{button.ChatName}";
+                    }
+                }
+            }
+
+            if (string.IsNullOrEmpty(buttonName))
+            {
+                buttonName = "Безымянная кнопка";
+            }
+
+            if (withSettings)
+            {
+                return $"{button.ButtonNumber}. {buttonName}. Подключена: {(button.ToSend ? "Да" : "Нет")}.";
+            }
+            else
+            {
+                return $"{button.ButtonNumber}. {buttonName}";
+            }
+        }
+
+
+        private static string GetButtonsRules(string buttonsView)
+        {
+            return $"Подключенные и доступные кнопки:  \n{buttonsView}. ";
+        }
+
+        private static string GetAddButtonsRules(string buttonsView)
+        {
+            return $"Подключенные и доступные кнопки:  \n{buttonsView}. \n\n" +
+                $"Отправьте по шаблону ({{номер}} или {{номер:Наименование кнопки}}) одну из доступных и не подключенных кнопок для добавления." +
+                $"\nЕсли кнопка уже была подключена - изменится ее наименование. \n\n" +
+                $"Для добавления группы кнопок (родительской кнопки) отправьте запрос по шаблону {{_:Наименование кнопки}}.\n\n " +
+                $"Для добавления доступной кнопки в группу кнопок отправьте запрос по шаблону {{номер:Наименование кнопки:Номер родительской кнопки}}. " +
+                $"В качестве родительской могут быть использованы только групповые кнопки. Групповую кнопку также можно добавлять дочерней к другой групповой (родительской) кнопке. \n\n" +
+                $"Если необходимо подключить модерацию на одну из кнопок (только для кнопок отправки обращения) - в конце запроса подключения добавьте {{:m}}" +
+                $", например: {{номер:Наименование кнопки:Номер родительской кнопки:m}}" +
+                $"\n\nЕсли нужных групп или тем нет в списке - " +
+                "добавьте бота в группу и отправьте в чат одно сообщение (для разбивки по темам - отправьте по одному сообщению в каждой из тем). " +
+                "\nПользователь, отправляющий сообщения, должен быть администратором бота.";
+        }
 
         private static ReplyParameters? GetReplyParameters(int? messageId)
         {
@@ -1063,6 +1175,12 @@ namespace ROTGBot.Service
                     new InlineKeyboardButton("Управление кнопками пользователя")
                     {
                         CallbackData = "EditButtonChoice"
+                    }
+                ],
+                [
+                    new InlineKeyboardButton("Просмотр кнопок пользователя")
+                    {
+                        CallbackData = "GetButtonChoice"
                     }
                 ]
             ];
