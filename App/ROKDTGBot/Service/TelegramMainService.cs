@@ -128,6 +128,7 @@ namespace ROTGBot.Service
             if (data == null) return false;
             Guid? newsId = null;
             int? buttonNumber = null;
+            int? newsNumber = null;
             int offset = 0;
             if (data.StartsWith("ApproveNews_") && Guid.TryParse(data.Split("_")[1], out Guid newsId1))
             {
@@ -145,6 +146,12 @@ namespace ROTGBot.Service
             {
                 data = "SendNewsChoice";
                 buttonNumber = buttonNumber2;
+            }
+
+            if (data.StartsWith("ReSendNews_") && int.TryParse(data.Split("_")[1], out int newsNumber2))
+            {
+                data = "ReSendNews";
+                newsNumber = newsNumber2;
             }
 
             if (data.StartsWith("GetSendedNews_") && int.TryParse(data.Split("_")[1], out int buttonNumber3))
@@ -170,6 +177,10 @@ namespace ROTGBot.Service
                                         (cl, chId,  userNews, tk) => SendNewsChoiceHandle(cl, chId, user, userNews, buttonNumber.Value,  tk), token),
                 "SendNews" => await SendWithCheckRights(client, user, chatId.Value,  callbackQuery.Id, RoleEnum.user,
                                         (cl, chId,  userNews, tk) => SendNewsHandle(cl, chId, userNews,  tk), token),
+                "ReSendNewsChoice" => await SendWithCheckRights(client, user, chatId.Value, callbackQuery.Id, RoleEnum.user,
+                                        (cl, chId, userNews, tk) => ReSendNewsChoiceHandle(cl, chId, user, userNews, tk), token),
+                "ReSendNews" => await SendWithCheckRights(client, user, chatId.Value, callbackQuery.Id, RoleEnum.user,
+                                        (cl, chId, userNews, tk) => ReSendNewsHandle(cl, chId, newsNumber.Value, userNews, tk), token),
                 "UserReport" => await SendWithCheckRights(client, user, chatId.Value, callbackQuery.Id, RoleEnum.user,
                                         (cl, chId, userNews, tk) => GetUserReportHandle(cl, chId, user, tk), token),
                 "GetSendedNews" => await SendWithCheckRights(client, user, chatId.Value, callbackQuery.Id, RoleEnum.user,
@@ -249,6 +260,18 @@ namespace ROTGBot.Service
             if (userNews != null)
             {
                 await SendNewsMessageAccepted(client, chatId, userNews,  token);
+            }
+            else
+            {
+                await SendNewsMessageNotFound(client, chatId);
+            }
+        }
+
+        private async Task ReSendNewsHandle(TelegramBotClient client, long chatId, int newsNumber, News? userNews, CancellationToken token)
+        {
+            if (userNews != null)
+            {
+                await ReSendNewsMessageAccepted(client, chatId, newsNumber, userNews, token);
             }
             else
             {
@@ -407,6 +430,18 @@ namespace ROTGBot.Service
             }
         }
 
+        private async Task ReSendNewsChoiceHandle(TelegramBotClient client, long chatId, Contract.Model.User user, News? userNews, CancellationToken token)
+        {
+            if (userNews != null)
+            {
+                await SendUserRemember(client, chatId, userNews, token);
+            }
+            else
+            {
+                await ReSendNewsMessageForUser(client, chatId, user, token);
+            }
+        }
+
         private async Task SendSwitchNotifyHandle(TelegramBotClient client, long chatId, Guid userId, CancellationToken token)
         {            
             var isNotify = await _userDataService.SwitchUserNotify(userId, token);
@@ -473,6 +508,21 @@ namespace ROTGBot.Service
             await _newsDataService.SetNewsAccepted(userNews.Id, token);
             await client.SendMessageAsync(chatId, "Обращение принято в обработку", cancellationToken: token);
             await NotifyModerators(client, userNews, token);
+        }
+
+        private async Task ReSendNewsMessageAccepted(TelegramBotClient client, long chatId, int newsNumber, News userNews, CancellationToken token)
+        {
+            1
+
+            var messages = await _newsDataService.GetNewsMessages(userNews.Id, token);
+
+            if (messages.Count == 0)
+            {
+                await client.SendMessageAsync(chatId, "Обращение создано некорректно, отправьте не менее одного сообщения", cancellationToken: token);
+                return;
+            }
+
+            
         }
 
         private async Task NotifyModerators(TelegramBotClient client, News userNews, CancellationToken token)
@@ -661,6 +711,11 @@ namespace ROTGBot.Service
         private static async Task ApproveNewsMessageNotFound(TelegramBotClient client, long chatId)
         {
             await client.SendMessageAsync(chatId, "Нет неотправленных обращений");
+        }
+
+        private async Task ReSendNewsMessageForUser(TelegramBotClient client, long chatId, Contract.Model.User user, CancellationToken token)
+        {
+            1
         }
 
         private async Task SendNewsMessageForUser(TelegramBotClient client, long chatId, int buttonNumber, Contract.Model.User user, CancellationToken token)
