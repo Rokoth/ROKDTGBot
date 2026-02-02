@@ -110,6 +110,10 @@ namespace ROTGBot.Service
                 {
                     await HandleData(client, user.ChatId, user, $"ViewUserRoles_{messageText}", cancellationToken);
                 }
+                if (userNews.Type == "unblockuser")
+                {
+                    await HandleData(client, user.ChatId, user, $"UnBlockUser_{messageText}", cancellationToken);
+                }
             }
             else if (message.IsTopicMessage != true)
             {               
@@ -196,6 +200,12 @@ namespace ROTGBot.Service
                 textData = data.Split("_")[1];
             }
 
+            if (data.StartsWith("UnBlockUser_") && !string.IsNullOrEmpty(data.Split("_")[1]))
+            {
+                data = "UnBlockUser";
+                textData = data.Split("_")[1];
+            }
+
             var roles = user.Roles;
             var userId = user.Id;
 
@@ -260,7 +270,7 @@ namespace ROTGBot.Service
                 "BlockUserDecline" => await SendWithCheckRights(client, user, chatId.Value, RoleEnum.administrator,
                                         (cl, chId, userNews, tk) => BlockUserDeclineHandle(cl, userId, chId, userNews, tk), token),
                 "UnBlockUser" => await SendWithCheckRights(client, user, chatId.Value, RoleEnum.administrator,
-                                        (cl, chId, userNews, tk) => UnBlockUserHandle(cl, userId, chId, userNews, tk), token),
+                                        (cl, chId, userNews, tk) => UnBlockUserHandle(cl, userId, chId, textData, userNews, tk), token),
                 "UnBlockUserDecline" => await SendWithCheckRights(client, user, chatId.Value, RoleEnum.administrator,
                                         (cl, chId, userNews, tk) => UnBlockUserDeclineHandle(cl, userId, chId, userNews, tk), token),
                 "EditButton" => await SendWithCheckRights(client, user, chatId.Value,  RoleEnum.administrator,
@@ -374,15 +384,27 @@ namespace ROTGBot.Service
 
         
 
-        private async Task BlockUserHandle(TelegramBotClient client, Guid moderatorId, long chatId, News? userNews, CancellationToken token)
+        private async Task BlockUserHandle(TelegramBotClient client, Guid moderatorId, long chatId, string textData, News? userNews, CancellationToken token)
         {
             if (userNews != null)
             {
-                await BlockUserAccepted(client, moderatorId, chatId, userNews, token);
+                await BlockUserAccepted(client, moderatorId, textData, chatId, userNews, token);
             }
             else
             {
                 await BlockUserMessageNotFound(client, chatId);
+            }
+        }
+
+        private async Task UnBlockUserHandle(TelegramBotClient client, Guid moderatorId, long chatId, string textData, News? userNews, CancellationToken token)
+        {
+            if (userNews != null)
+            {
+                await UnBlockUserAccepted(client, moderatorId, textData, chatId, userNews, token);
+            }
+            else
+            {
+                await UnBlockUserMessageNotFound(client, chatId);
             }
         }
 
@@ -431,6 +453,18 @@ namespace ROTGBot.Service
             else
             {
                 await BlockUserMessageNotFound(client, chatId);
+            }
+        }
+
+        private async Task UnBlockUserDeclineHandle(TelegramBotClient client, Guid moderatorId, long chatId, News? userNews, CancellationToken token)
+        {
+            if (userNews != null)
+            {
+                await UnBlockUserDecline(client, moderatorId, chatId, userNews, token);
+            }
+            else
+            {
+                await UnBlockUserMessageNotFound(client, chatId);
             }
         }
 
@@ -548,7 +582,19 @@ namespace ROTGBot.Service
             }
             else
             {
-                await SendBlockUserForUser(client, chatId, user,  token);
+                await SendBlockUserChoice(client, chatId, user,  token);
+            }
+        }
+
+        private async Task SendUnBlockUserChoiceHandle(TelegramBotClient client, long chatId, Contract.Model.User user, News? userNews, CancellationToken token)
+        {
+            if (userNews != null)
+            {
+                await SendUserRemember(client, chatId, userNews, token);
+            }
+            else
+            {
+                await SendUnBlockUserChoice(client, chatId, user, token);
             }
         }
 
@@ -884,6 +930,25 @@ namespace ROTGBot.Service
             await client.SendMessageAsync(chatId, "Модераторы добавлены", cancellationToken: token);
         }
 
+        private async Task UnBlockUserAccepted(TelegramBotClient client, Guid moderatorId, string data, long chatId, News userNews, CancellationToken token)
+        {
+            try
+            {
+                var user = await _userDataService.GetUserByLoginOrNumber(data, token);
+                if(user == null)
+                {
+                    await client.SendMessageAsync(chatId, "Пользователь не найден, попробуйте еще раз", cancellationToken: token);
+                    return;
+                }
+                await _userDataService.UnBlockUser(user.Id, token);
+                await client.SendMessageAsync(chatId, "Пользователь разблокирован", cancellationToken: token);
+            }
+            catch (Exception ex)
+            {
+                await client.SendMessageAsync(chatId, $"Ошибка при разблокировке пользователя: {ex.Message}", cancellationToken: token);
+            }            
+        }
+
         private static async Task SendNewsMessageNotFound(TelegramBotClient client, long chatId)
         {
             await client.SendMessageAsync(chatId, "Нет неподтвержденных обращений");
@@ -1003,6 +1068,28 @@ namespace ROTGBot.Service
                 replyMarkup: replyMarkup,
                 cancellationToken: token);
         }
+
+        private async Task SendUnBlockUserChoice(TelegramBotClient client, long chatId, Contract.Model.User user, CancellationToken token)
+        {
+            await _newsDataService.CreateNews(chatId, user.Id, null, null, "unblockuser", "Разблокировка пользователя", token);
+
+            var button1 = new InlineKeyboardButton("Отменить")
+            {
+                CallbackData = "UnBlockUserDecline"
+            };
+            ReplyMarkup replyMarkup = new InlineKeyboardMarkup(
+                new List<List<InlineKeyboardButton>>()
+                {
+                    new()
+                    {
+                        button1
+                    }
+                });
+
+            await client.SendMessageAsync(chatId, "Отправьте номер или логин пользователя для разблокировки или нажмите кнопку Отменить для отмены",
+                replyMarkup: replyMarkup,
+                cancellationToken: token);
+        }        
 
         private async Task SendEditButtonForUser(TelegramBotClient client, long chatId, Contract.Model.User user, CancellationToken token)
         {
@@ -1215,6 +1302,7 @@ namespace ROTGBot.Service
                 "addadmin" => SendAddAdminForAdminRemember(client, chatId),
                 "addmoderator" => SendAddModeratorForAdminRememeber(client, chatId),
                 "editbutton" => SendEditButtonForAdminRemember(client, chatId, token),
+                "unblockuser" => SendUnBlockUserForAdminRemember(client, chatId),
                 _ => Task.CompletedTask,
             };
         }
@@ -1265,8 +1353,6 @@ namespace ROTGBot.Service
                 replyMarkup: replyMarkup);
         }
 
-        
-
         private static async Task SendAddModeratorForAdminRememeber(TelegramBotClient client, long chatId)
         {
             var button1 = new InlineKeyboardButton("Добавить")
@@ -1287,6 +1373,25 @@ namespace ROTGBot.Service
                 });
             await client.SendMessageAsync(chatId, "У вас есть неподтвержденные пользователи на добавление в модераторы." +
                 " Отправьте один или несколько логинов и нажмите кнопку Добавить, либо Отменить для отмены добавления",
+                replyMarkup: replyMarkup);
+        }
+
+        private static async Task SendUnBlockUserForAdminRemember(TelegramBotClient client, long chatId)
+        {            
+            var button1 = new InlineKeyboardButton("Отменить")
+            {
+                CallbackData = "UnBlockUserDecline"
+            };
+            ReplyMarkup replyMarkup = new InlineKeyboardMarkup(
+                new List<List<InlineKeyboardButton>>()
+                {
+                    new()
+                    {
+                        button1
+                    }
+                });
+            await client.SendMessageAsync(chatId, "У вас есть неподтвержденные пользователи на разблокировку пользователя." +
+                " Отправьте логин или номер пользователя для разблокировки, либо Отменить для отмены",
                 replyMarkup: replyMarkup);
         }
 
