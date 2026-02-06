@@ -11,5 +11,6 @@
         public long? GroupId { get; set; }       
         public long? ThreadId { get; set; }              
         public DateTime CreatedDate { get; set; }
+        public bool IsMulti { get; set; }
     }
 }

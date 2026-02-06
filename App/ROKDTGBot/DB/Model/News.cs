@@ -27,5 +27,8 @@ namespace ROTGBot.Db.Model
         public DateTime CreatedDate { get; set; }
         [ColumnName("moderatorid")]
         public Guid? ModeratorId { get; set; }
+
+        [ColumnName("ismulti")]
+        public bool IsMulti { get; set; }
     }
 }

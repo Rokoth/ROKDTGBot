@@ -1,0 +1,1 @@
+﻿alter table news add column if not exists ismulti boolean not null default false;

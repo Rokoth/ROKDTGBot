@@ -104,6 +104,38 @@ namespace ROTGBot.Service
             else if (userNews != null)
             {
                 await _newsDataService.AddNewMessageForNews(message.MessageId, userNews.Id, message.Text ?? "", cancellationToken);
+
+                if (userNews.Type == "news")
+                {
+                    if (userNews.IsMulti)
+                    {
+                        var sendButtons = new List<List<InlineKeyboardButton>>()
+                        {
+                            new()
+                            {
+                                new InlineKeyboardButton("Подтвердить отправку")
+                                {
+                                    CallbackData = "SendNews"
+                                },
+                                new InlineKeyboardButton("Отменить")
+                                {
+                                    CallbackData = "DeleteNews"
+                                }
+                            }
+                        };
+
+                        ReplyMarkup replyMarkup = new InlineKeyboardMarkup(sendButtons);
+
+                        await client.SendMessageAsync(user.ChatId,
+                            "Сообщение принято. Вы можете отправить ещё одно или несколько сообщений, или нажмите кнопку Подтвердить отправку, если отправили все нужные данные; " +
+                            "для отмены отправки нажмите Отменить.",
+                            replyMarkup: replyMarkup, cancellationToken: cancellationToken);
+                    }
+                    else
+                    {
+                        await HandleData(user.ChatId, user, "SendNews", cancellationToken);
+                    }
+                }
             }
             else if (message.IsTopicMessage != true)
             {               

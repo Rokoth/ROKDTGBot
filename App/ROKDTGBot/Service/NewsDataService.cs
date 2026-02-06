@@ -49,7 +49,8 @@ namespace ROTGBot.Service
                 ThreadId = result.ThreadId,
                 Title = result.Title,
                 Type = result.Type,
-                UserId = result.UserId
+                UserId = result.UserId,
+                IsMulti = result.IsMulti
             };
         }
 
