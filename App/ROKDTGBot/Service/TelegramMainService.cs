@@ -180,11 +180,17 @@ namespace ROTGBot.Service
                 buttonNumber = buttonNumber2;
             }
 
+            if (data.StartsWith("SendAdditionalMessageChoice_") && int.TryParse(data.Split("_")[1], out int newsNumber3))
+            {
+                data = "SendAdditionalMessageChoice";
+                newsNumber = newsNumber3;
+            }
+
             if (data.StartsWith("ReSendNews_") && int.TryParse(data.Split("_")[1], out int newsNumber2))
             {
                 data = "ReSendNews";
                 newsNumber = newsNumber2;
-            }
+            }            
 
             if (data.StartsWith("GetSendedNews_") && int.TryParse(data.Split("_")[1], out int buttonNumber3))
             {
@@ -209,6 +215,10 @@ namespace ROTGBot.Service
                                         (cl, chId,  userNews, tk) => SendNewsChoiceHandle(cl, chId, user, userNews, buttonNumber.Value,  tk), token),
                 "SendNews" => await SendWithCheckRights(client, user, chatId.Value,  callbackQuery.Id, RoleEnum.user,
                                         (cl, chId,  userNews, tk) => SendNewsHandle(cl, chId, userNews,  tk), token),
+                "SendAdditionalMessageChoice" => await SendWithCheckRights(client, user, chatId.Value, callbackQuery.Id, RoleEnum.user,
+                                        (cl, chId, userNews, tk) => SendAdditionalMessageChoiceHandle(cl, chId, user, userNews, newsNumber.Value, tk), token),
+                "SendAdditionalMessage" => await SendWithCheckRights(client, user, chatId.Value, callbackQuery.Id, RoleEnum.user,
+                                        (cl, chId, userNews, tk) => SendAdditionalMessageHandle(cl, chId, userNews, tk), token),
                 "ReSendNewsChoice" => await SendWithCheckRights(client, user, chatId.Value, callbackQuery.Id, RoleEnum.user,
                                         (cl, chId, userNews, tk) => ReSendNewsChoiceHandle(cl, chId, user, userNews, tk), token),
                 "ReSendNews" => await SendWithCheckRights(client, user, chatId.Value, callbackQuery.Id, RoleEnum.user,
