@@ -562,6 +562,18 @@ namespace ROTGBot.Service
             }
         }
 
+        private async Task SendDeleteAdminChoiceHandle(TelegramBotClient client, long chatId, Contract.Model.User user, News? userNews, CancellationToken token)
+        {
+            if (userNews != null)
+            {
+                await SendUserRemember(client, chatId, userNews, token);
+            }
+            else
+            {
+                await SendDeleteAdminForUser(client, chatId, user, token);
+            }
+        }        
+
         private async Task SendAddModeratorChoiceHandle(TelegramBotClient client, long chatId, Contract.Model.User user, News? userNews, CancellationToken token)
         {
             if (userNews != null)
@@ -571,6 +583,18 @@ namespace ROTGBot.Service
             else
             {
                 await SendAddModeratorForUser(client, chatId, user, token);
+            }
+        }
+
+        private async Task SendDeleteModeratorChoiceHandle(TelegramBotClient client, long chatId, Contract.Model.User user, News? userNews, CancellationToken token)
+        {
+            if (userNews != null)
+            {
+                await SendUserRemember(client, chatId, userNews, token);
+            }
+            else
+            {
+                await SendDeleteModeratorForUser(client, chatId, user, token);
             }
         }
 
@@ -1047,6 +1071,28 @@ namespace ROTGBot.Service
                 cancellationToken: token);
         }
 
+        private async Task SendDeleteAdminForUser(TelegramBotClient client, long chatId, Contract.Model.User user, CancellationToken token)
+        {
+            await _newsDataService.CreateNews(chatId, user.Id, null, null, "deleteadmin", "Удаление администратора", token);
+
+            var button1 = new InlineKeyboardButton("Удалить")
+            {
+                CallbackData = "DeleteAdmin"
+            };
+            ReplyMarkup replyMarkup = new InlineKeyboardMarkup(
+                new List<List<InlineKeyboardButton>>()
+                {
+                    new()
+                    {
+                        button1
+                    }
+                });
+
+            await client.SendMessageAsync(chatId, "Отправьте по одному логины пользователей, которых надо удалить из администраторов и нажмите кнопку Удалить",
+                replyMarkup: replyMarkup,
+                cancellationToken: token);
+        }        
+
         private async Task SendAddModeratorForUser(TelegramBotClient client, long chatId, Contract.Model.User user, CancellationToken token)
         {
             await _newsDataService.CreateNews(chatId, user.Id, null, null, "addmoderator", "Добавление модератора", token);
@@ -1068,6 +1114,28 @@ namespace ROTGBot.Service
                 replyMarkup: replyMarkup,
                 cancellationToken: token);
         }
+
+        private async Task SendDeleteModeratorForUser(TelegramBotClient client, long chatId, Contract.Model.User user, CancellationToken token)
+        {
+            await _newsDataService.CreateNews(chatId, user.Id, null, null, "deletemoderator", "Удаление модератора", token);
+
+            var button1 = new InlineKeyboardButton("Удалить")
+            {
+                CallbackData = "DeleteModerator"
+            };
+            ReplyMarkup replyMarkup = new InlineKeyboardMarkup(
+                new List<List<InlineKeyboardButton>>()
+                {
+                    new()
+                    {
+                        button1
+                    }
+                });
+
+            await client.SendMessageAsync(chatId, "Отправьте по одному логины пользователей, которых надо удалить из модераторов и нажмите кнопку Удалить",
+                replyMarkup: replyMarkup,
+                cancellationToken: token);
+        }        
 
         private async Task SendUnBlockUserChoice(TelegramBotClient client, long chatId, Contract.Model.User user, CancellationToken token)
         {
