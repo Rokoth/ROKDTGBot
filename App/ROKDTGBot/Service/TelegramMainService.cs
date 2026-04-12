@@ -182,9 +182,10 @@ namespace ROTGBot.Service
                                         (cl, chId,  userNews, tk) => SendAddModeratorChoiceHandle(cl, chId, user, userNews,  tk), token),
                 "EditButtonChoice" => await SendWithCheckRights(client, user, chatId.Value,  callbackQuery.Id, RoleEnum.administrator,
                                         (cl, chId,  userNews, tk) => SendEditButtonChoiceHandle(cl, chId, user, userNews,  tk), token),
+                "AddButtonChoice" => await SendWithCheckRights(client, user, chatId.Value, callbackQuery.Id, RoleEnum.administrator,
+                                        (cl, chId, userNews, tk) => SendAddButtonChoiceHandle(cl, chId, user, userNews, tk), token),
                 "GetButtonChoice" => await SendWithCheckRights(client, user, chatId.Value, callbackQuery.Id, RoleEnum.administrator,
                                         (cl, chId, userNews, tk) => SendGetButtonChoiceHandle(cl, chId, user, userNews, tk), token),
-
                 "AddAdmin" => await SendWithCheckRights(client, user, chatId.Value,  callbackQuery.Id, RoleEnum.administrator,
                                         (cl, chId,  userNews, tk) => AddAdminHandle(cl, userId, chId, userNews,  tk), token),
                 "AddAdminDecline" => await SendWithCheckRights(client, user, chatId.Value,  callbackQuery.Id, RoleEnum.administrator,
@@ -195,8 +196,12 @@ namespace ROTGBot.Service
                                         (cl, chId,  userNews, tk) => AddModeratorDeclineHandle(cl, userId, chId, userNews,  tk), token),
                 "EditButton" => await SendWithCheckRights(client, user, chatId.Value,  callbackQuery.Id, RoleEnum.administrator,
                                         (cl, chId,  userNews, tk) => EditButtonHandle(cl, userId, chId, userNews,  tk), token),
+                "AddButton" => await SendWithCheckRights(client, user, chatId.Value, callbackQuery.Id, RoleEnum.administrator,
+                                        (cl, chId, userNews, tk) => AddButtonHandle(cl, userId, chId, userNews, tk), token),
                 "EditButtonDecline" => await SendWithCheckRights(client, user, chatId.Value,  callbackQuery.Id, RoleEnum.administrator,
                                         (cl, chId,  userNews, tk) => EditButtonDeclineHandle(cl, userId, chId, userNews,  tk), token),
+                "AddButtonDecline" => await SendWithCheckRights(client, user, chatId.Value, callbackQuery.Id, RoleEnum.administrator,
+                                        (cl, chId, userNews, tk) => AddButtonDeclineHandle(cl, userId, chId, userNews, tk), token),
                 "DeleteButtonChoice" => await SendWithCheckRights(client, user, chatId.Value, callbackQuery.Id, RoleEnum.administrator,
                                         (cl, chId, userNews, tk) => SendDeleteButtonChoiceHandle(cl, chId, user, userNews, tk), token),
                 "DeleteButton" => await SendWithCheckRights(client, user, chatId.Value, callbackQuery.Id, RoleEnum.administrator,
@@ -293,6 +298,18 @@ namespace ROTGBot.Service
             }
         }
 
+        private async Task AddButtonHandle(TelegramBotClient client, Guid moderatorId, long chatId, News? userNews, CancellationToken token)
+        {
+            if (userNews != null)
+            {
+                await AddButtonAccepted(client, moderatorId, chatId, userNews, token);
+            }
+            else
+            {
+                await AddButtonMessageNotFound(client, chatId);
+            }
+        }
+
         private async Task DeleteButtonHandle(TelegramBotClient client, Guid moderatorId, long chatId, News? userNews, CancellationToken token)
         {
             if (userNews != null)
@@ -338,6 +355,18 @@ namespace ROTGBot.Service
             else
             {
                 await EditButtonMessageNotFound(client, chatId);
+            }
+        }
+
+        private async Task AddButtonDeclineHandle(TelegramBotClient client, Guid moderatorId, long chatId, News? userNews, CancellationToken token)
+        {
+            if (userNews != null)
+            {
+                await AddButtonDeclined(client, moderatorId, chatId, userNews, token);
+            }
+            else
+            {
+                await AddButtonMessageNotFound(client, chatId);
             }
         }
 
@@ -470,6 +499,18 @@ namespace ROTGBot.Service
                 await SendEditButtonForUser(client, chatId, user,  token);
             }
         }
+
+        private async Task SendAddButtonChoiceHandle(TelegramBotClient client, long chatId, Contract.Model.User user, News? userNews, CancellationToken token)
+        {
+            if (userNews != null)
+            {
+                await SendUserRemember(client, chatId, userNews, token);
+            }
+            else
+            {
+                await SendAddButtonForUser(client, chatId, user, token);
+            }
+        }                
 
         private async Task SendDeleteButtonChoiceHandle(TelegramBotClient client, long chatId, Contract.Model.User user, News? userNews, CancellationToken token)
         {
@@ -939,8 +980,50 @@ namespace ROTGBot.Service
                     "Для добавления доступных кнопок добавьте бота в группу и отправьте в чат одно сообщение (для разбивки по темам - отправьте по одному сообщению в каждой из тем)." +
                     "Пользователь, отправляющий сообщения, должен быть администратором бота.",                   
                     cancellationToken: token);
+            }               
+        }
+
+        private async Task SendAddButtonForUser(TelegramBotClient client, long chatId, Contract.Model.User user, CancellationToken token)
+        {
+            var availableButtons = await _buttonsDataService.GetAllButtons(token);
+            if (availableButtons.Count != 0)
+            {
+                await _newsDataService.CreateNews(chatId, user.Id, null, null, "addbutton", "Добавление кнопки", token);
+
+                var button1 = new InlineKeyboardButton("Сохранить")
+                {
+                    CallbackData = "AddButton"
+                };
+                var button2 = new InlineKeyboardButton("Отменить")
+                {
+                    CallbackData = "AddButtonDecline"
+                };
+                ReplyMarkup replyMarkup = new InlineKeyboardMarkup(
+                    new List<List<InlineKeyboardButton>>()
+                    {
+                    new()
+                    {
+                        button1, button2
+                    }
+                    });
+
+
+                var buttonsView = string.Join("\n", availableButtons.OrderBy(s => s.ButtonNumber).Select(s => $"{s.ButtonNumber}. {s.ChatName}:{s.ThreadName}. Подключена: {(s.ToSend ? "Да" : "Нет")}"));
+
+                await client.SendMessageAsync(chatId, $"Подключенные и доступные кнопки:  \n{buttonsView}. \n\nОтправьте по шаблону ({{номер}} или {{номер:Наименование кнопки}}) настройку кнопки " +
+                    " и нажмите кнопку Сохранить. Если нужных групп или тем нет в списке - " +
+                    "добавьте бота в группу и отправьте в чат одно сообщение (для разбивки по темам - отправьте по одному сообщению в каждой из тем)." +
+                    " \nПользователь, отправляющий сообщения, должен быть администратором бота.",
+                    replyMarkup: replyMarkup,
+                    cancellationToken: token);
             }
-               
+            else
+            {
+                await client.SendMessageAsync(chatId, "Нет доступных кнопок для добавления пользователю. " +
+                    "Для добавления доступных кнопок добавьте бота в группу и отправьте в чат одно сообщение (для разбивки по темам - отправьте по одному сообщению в каждой из тем)." +
+                    "Пользователь, отправляющий сообщения, должен быть администратором бота.",
+                    cancellationToken: token);
+            }
         }
 
         private async Task SendDeleteButtonForUser(TelegramBotClient client, long chatId, Contract.Model.User user, CancellationToken token)
