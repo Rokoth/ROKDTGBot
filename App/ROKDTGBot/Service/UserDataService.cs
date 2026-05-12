@@ -143,5 +143,20 @@ namespace ROTGBot.Service
             await _userRepo.UpdateAsync(user, true, token);
             return user.IsBlocked;
         }
+
+        public Task<IEnumerable<Contract.Model.User>> GetNewUsers(CancellationToken token)
+        {
+            
+        }
+
+        public Task<Contract.Model.User> GetOrAddUser(User tguser, long? chatId, CancellationToken cancellationToken)
+        {
+            
+        }
+
+        public Task<Contract.Model.User> GetUserByLoginOrNumber(string textData, CancellationToken token)
+        {
+            
+        }
     }
 }

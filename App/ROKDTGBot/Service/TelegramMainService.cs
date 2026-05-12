@@ -233,6 +233,8 @@ namespace ROTGBot.Service
                                         (cl, chId, userNews, tk) => SendViewUserRolesChoiceHandle(cl, chId, user, userNews, tk), token),
                 "ViewUserRoles" => await SendWithCheckRights(client, user, chatId.Value, RoleEnum.administrator,
                                         (cl, chId, userNews, tk) => SendViewUserRolesHandle(cl, chId, user, userNews, textData, tk), token),
+                "ViewDemandUsers" => await SendWithCheckRights(client, user, chatId.Value, RoleEnum.administrator,
+                                        (cl, chId, userNews, tk) => SendViewDemandUsersHandle(cl, chId, user, userNews, textData, tk), token),
                 "AddAdminChoice" => await SendWithCheckRights(client, user, chatId.Value,  RoleEnum.administrator,
                                         (cl, chId,  userNews, tk) => SendAddAdminChoiceHandle(cl, chId, user, userNews,  tk), token),
                 "AddModeratorChoice" => await SendWithCheckRights(client, user, chatId.Value,  RoleEnum.administrator,
@@ -772,7 +774,17 @@ namespace ROTGBot.Service
             }
         }
 
-        
+        private async Task SendViewDemandUsersHandle(TelegramBotClient client, long chatId, Contract.Model.User user, News? userNews, CancellationToken token)
+        {
+            if (userNews != null)
+            {
+                await SendUserRemember(client, chatId, userNews, token);
+            }
+            else
+            {
+                await SendViewDemandUsers(client, chatId, user, token);
+            }
+        }        
 
         private static ReplyParameters? GetReplyParameters(int? messageId)
         {
@@ -1211,6 +1223,16 @@ namespace ROTGBot.Service
                 cancellationToken: token);
         }
 
+        private async Task SendViewDemandUsers(TelegramBotClient client, long chatId, Contract.Model.User user, CancellationToken token)
+        {
+            var demands = await _userDataService.GetNewUsers(token);
+
+            await client.SendMessageAsync(chatId, $"Заявки на добавление:\r\n{string.Join("\r\n", demands.Select(s => $"{s.Number}:{s.TGLogin}({s.Name})"))}",
+                cancellationToken: token);
+        }
+
+
+        
         private async Task SendEditButtonForAdminRemember(TelegramBotClient client, long chatId, CancellationToken token)
         {
             var availableButtons = await _buttonsDataService.GetAllButtons(token);

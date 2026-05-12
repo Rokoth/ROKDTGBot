@@ -5,6 +5,7 @@ namespace ROTGBot.Service
     public interface IUserDataService
     {
         Task<bool> BlockUser(Guid userId, CancellationToken token);
+        Task<IEnumerable<Contract.Model.User>> GetNewUsers(CancellationToken token);
         Task<IEnumerable<Contract.Model.User>> GetNotifyModerators(CancellationToken token);
         Task<Contract.Model.User> GetOrAddUser(Telegram.BotAPI.AvailableTypes.User tguser, long? chatId, CancellationToken cancellationToken);
         Task<User> GetUserByLoginOrNumber(string textData, CancellationToken token);
