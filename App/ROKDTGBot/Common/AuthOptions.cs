@@ -3,8 +3,13 @@ using System.Text;
 
 namespace Common
 {
+    /// <summary>
+    /// Настройки авторизации
+    /// </summary>
     public class AuthOptions
     {
+        private Encoding DefaultEncoding => Encoding.GetEncoding(EncodingDefault);
+
         /// <summary>
         /// издатель токена
         /// </summary>
@@ -21,14 +26,15 @@ namespace Common
         /// время жизни токена - 1 минута
         /// </summary>
         public int LifeTime { get; set; }
+        /// <summary>
+        /// кодировка
+        /// </summary>
+        public string EncodingDefault { get; set; } = "";
 
         /// <summary>
         /// получить ключ
         /// </summary>
         /// <returns></returns>
-        public SymmetricSecurityKey GetSymmetricSecurityKey()
-        {
-            return new SymmetricSecurityKey(Encoding.ASCII.GetBytes(Key));
-        }
+        public SymmetricSecurityKey GetSymmetricSecurityKey() => new(DefaultEncoding.GetBytes(Key));
     }
 }

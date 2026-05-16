@@ -2,6 +2,7 @@
 {
     public enum RoleEnum
     {
+        none,
         administrator,
         moderator,
         user

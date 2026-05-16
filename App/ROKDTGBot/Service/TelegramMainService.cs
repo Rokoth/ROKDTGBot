@@ -168,6 +168,7 @@ namespace ROTGBot.Service
             string data = dataReq;
             Guid? newsId = null;
             int? buttonNumber = null;
+            Guid? userIdn = null;
             int offset = 0;
             string textData = string.Empty;
             if (data.StartsWith("ApproveNews_") && Guid.TryParse(data.Split("_")[1], out Guid newsId1))
@@ -186,6 +187,12 @@ namespace ROTGBot.Service
             {
                 data = "SendNewsChoice";
                 buttonNumber = buttonNumber2;
+            }
+
+            if (data.StartsWith("ApproveUserDemand_") && Guid.TryParse(data.Split("_")[1], out Guid userId2))
+            {
+                data = "ApproveUserDemand";
+                userIdn = userId2;
             }
 
             if (data.StartsWith("ApproveNewsChoice_") && int.TryParse(data.Split("_")[1], out int offset1))
@@ -232,9 +239,13 @@ namespace ROTGBot.Service
                 "ViewUserRolesChoice" => await SendWithCheckRights(client, user, chatId.Value, RoleEnum.administrator,
                                         (cl, chId, userNews, tk) => SendViewUserRolesChoiceHandle(cl, chId, user, userNews, tk), token),
                 "ViewUserRoles" => await SendWithCheckRights(client, user, chatId.Value, RoleEnum.administrator,
-                                        (cl, chId, userNews, tk) => SendViewUserRolesHandle(cl, chId, user, userNews, textData, tk), token),
+                                        (cl, chId, userNews, tk) => SendViewUserRolesHandle(cl, chId, user, userNews, tk), token),
+                "ViewUserRolesDecline" => await SendWithCheckRights(client, user, chatId.Value, RoleEnum.administrator,
+                                        (cl, chId, userNews, tk) => SendViewUserRolesDeclineHandle(cl, chId, user, userNews, tk), token),
                 "ViewDemandUsers" => await SendWithCheckRights(client, user, chatId.Value, RoleEnum.administrator,
-                                        (cl, chId, userNews, tk) => SendViewDemandUsersHandle(cl, chId, user, userNews, textData, tk), token),
+                                        (cl, chId, userNews, tk) => SendViewDemandUsersHandle(cl, chId, user, userNews, tk), token),
+                "ApproveUserDemand" => await SendWithCheckRights(client, user, chatId.Value, RoleEnum.administrator,
+                                        (cl, chId, userNews, tk) => SendApproveUserDemandHandle(cl, chId, user, userNews, userIdn, tk), token),
                 "AddAdminChoice" => await SendWithCheckRights(client, user, chatId.Value,  RoleEnum.administrator,
                                         (cl, chId,  userNews, tk) => SendAddAdminChoiceHandle(cl, chId, user, userNews,  tk), token),
                 "AddModeratorChoice" => await SendWithCheckRights(client, user, chatId.Value,  RoleEnum.administrator,
@@ -367,11 +378,11 @@ namespace ROTGBot.Service
             }
         }
 
-        private async Task SendViewUserRolesHandle(TelegramBotClient client, long chatId, Contract.Model.User user, News? userNews, string textData, CancellationToken token)
+        private async Task SendViewUserRolesHandle(TelegramBotClient client, long chatId, Contract.Model.User user, News? userNews, CancellationToken token)
         {
             if (userNews != null)
             {
-                await SendViewUserRoles(client, chatId, userNews, textData, token);
+                await SendViewUserRoles(client, chatId, userNews, token);
             }
             else
             {
@@ -893,18 +904,38 @@ namespace ROTGBot.Service
             await client.SendMessageAsync(chatId, "Кнопки сохранены", cancellationToken: token);
         }
 
-        private async Task SendViewUserRoles(TelegramBotClient client, long chatId, News userNews, string textData, CancellationToken token)
+        private async Task SendViewUserRoles(TelegramBotClient client, long chatId, News userNews, CancellationToken token)
         {
-            Contract.Model.User user = await _userDataService.GetUserByLoginOrNumber(textData, token);
-            var roles = string.Empty;
-            if(user.IsModerator)
+            var messages = await _newsDataService.GetNewsMessages(userNews.Id, token);
+
+            if (messages.Count == 0)
             {
-                roles += "Модератор";
+                await client.SendMessageAsync(chatId, "Не отправлено ни одного логина", cancellationToken: token);
+                return;
             }
 
+            var login = messages.FirstOrDefault()?.TextValue;
 
-            await client.SendMessageAsync(chatId, $"Права пользователя {user.Number}:{user.TGLogin}: {}", cancellationToken: token);
-            1
+            if (string.IsNullOrEmpty(login))
+            {
+                await client.SendMessageAsync(chatId, "Не отправлено ни одного логина", cancellationToken: token);
+                return;
+            }
+
+            Contract.Model.User user = await _userDataService.GetUserByLoginOrNumber(login, token);
+            var roles = user.Roles.Select(s => {
+                return s switch
+                {
+                    RoleEnum.administrator => "Администратор",
+                    RoleEnum.moderator => "Модератор",
+                    RoleEnum.user => "Пользователь",
+                    _ => "Не определено",
+                };
+            });
+            
+
+
+            await client.SendMessageAsync(chatId, $"Права пользователя {user.Number}:{user.TGLogin}: {string.Join(";", roles)}", cancellationToken: token);           
         }
 
         private static List<ButtonSetting> ParseButtonsSettings(IEnumerable<NewsMessage> messages)
@@ -1169,7 +1200,29 @@ namespace ROTGBot.Service
             await client.SendMessageAsync(chatId, "Отправьте номер или логин пользователя для разблокировки или нажмите кнопку Отменить для отмены",
                 replyMarkup: replyMarkup,
                 cancellationToken: token);
-        }        
+        }
+
+        private async Task SendBlockUserChoice(TelegramBotClient client, long chatId, Contract.Model.User user, CancellationToken token)
+        {
+            await _newsDataService.CreateNews(chatId, user.Id, null, null, "blockuser", "Блокировка пользователя", token);
+
+            var button1 = new InlineKeyboardButton("Отменить")
+            {
+                CallbackData = "BlockUserDecline"
+            };
+            ReplyMarkup replyMarkup = new InlineKeyboardMarkup(
+                new List<List<InlineKeyboardButton>>()
+                {
+                    new()
+                    {
+                        button1
+                    }
+                });
+
+            await client.SendMessageAsync(chatId, "Отправьте номер или логин пользователя для блокировки или нажмите кнопку Отменить для отмены",
+                replyMarkup: replyMarkup,
+                cancellationToken: token);
+        }
 
         private async Task SendEditButtonForUser(TelegramBotClient client, long chatId, Contract.Model.User user, CancellationToken token)
         {
@@ -1219,7 +1272,20 @@ namespace ROTGBot.Service
         {
             await _newsDataService.CreateNews(chatId, user.Id, null, null, "viewuserroles", "Просмотр прав пользователя", token);
 
-            await client.SendMessageAsync(chatId, "Отправьте логин или номер пользователя для просмотра его прав",                
+            var button1 = new InlineKeyboardButton("Отменить")
+            {
+                CallbackData = "ViewUserRolesDecline"
+            };
+            ReplyMarkup replyMarkup = new InlineKeyboardMarkup(
+                new List<List<InlineKeyboardButton>>()
+                {
+                    new()
+                    {
+                        button1
+                    }
+                });
+
+            await client.SendMessageAsync(chatId, "Отправьте логин или номер пользователя для просмотра его прав или нажмите Отмена для отмены задачи",                
                 cancellationToken: token);
         }
 

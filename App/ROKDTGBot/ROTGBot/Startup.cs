@@ -49,7 +49,7 @@ namespace ROTGBot
                         // установка ключа безопасности
                         IssuerSigningKey = settings.GetSymmetricSecurityKey(),
                         // валидация ключа безопасности
-                        ValidateIssuerSigningKey = true,
+                        ValidateIssuerSigningKey = true,                        
                     };
                 });
 
