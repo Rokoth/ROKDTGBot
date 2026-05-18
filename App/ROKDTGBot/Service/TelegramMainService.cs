@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using ROTGBot.Contract.Model;
+using System.Linq.Dynamic.Core.Tokenizer;
 using Telegram.BotAPI;
 using Telegram.BotAPI.AvailableMethods;
 using Telegram.BotAPI.AvailableTypes;
@@ -133,7 +134,7 @@ namespace ROTGBot.Service
                     }
                     else
                     {
-                        await HandleData(user.ChatId, user, "SendNews", cancellationToken);
+                        await HandleData(client, user.ChatId, user, "SendNews", cancellationToken);
                     }
                 }
             }
@@ -216,53 +217,53 @@ namespace ROTGBot.Service
 
             return data switch
             {
-                "SwitchNotify" => await SendWithCheckRights(client, user, chatId.Value, callbackQuery.Id, RoleEnum.moderator,
+                "SwitchNotify" => await SendWithCheckRights(client, user, chatId.Value, RoleEnum.moderator,
                                         (cl, chId, userNews, tk) => SendSwitchNotifyHandle(cl, chId, user.Id, tk), token),
-                "SendNewsChoice" => await SendWithCheckRights(client, user, chatId.Value, callbackQuery.Id, RoleEnum.user,
+                "SendNewsChoice" => await SendWithCheckRights(client, user, chatId.Value, RoleEnum.user,
                                         (cl, chId, userNews, tk) => SendNewsChoiceHandle(cl, chId, user, userNews, buttonNumber.Value, tk), token),
-                "SendNews" => await SendWithCheckRights(client, user, chatId.Value, callbackQuery.Id, RoleEnum.user,
+                "SendNews" => await SendWithCheckRights(client, user, chatId.Value, RoleEnum.user,
                                         (cl, chId, userNews, tk) => SendNewsHandle(cl, chId, userNews, tk), token),
-                "SendAdditionalMessageChoice" => await SendWithCheckRights(client, user, chatId.Value, callbackQuery.Id, RoleEnum.user,
+                "SendAdditionalMessageChoice" => await SendWithCheckRights(client, user, chatId.Value, RoleEnum.user,
                                         (cl, chId, userNews, tk) => SendAdditionalMessageChoiceHandle(cl, chId, user, userNews, newsNumber.Value, tk), token),
-                "SendAdditionalMessage" => await SendWithCheckRights(client, user, chatId.Value, callbackQuery.Id, RoleEnum.user,
+                "SendAdditionalMessage" => await SendWithCheckRights(client, user, chatId.Value, RoleEnum.user,
                                         (cl, chId, userNews, tk) => SendAdditionalMessageHandle(cl, chId, userNews, tk), token),
-                "ReSendNewsChoice" => await SendWithCheckRights(client, user, chatId.Value, callbackQuery.Id, RoleEnum.user,
+                "ReSendNewsChoice" => await SendWithCheckRights(client, user, chatId.Value, RoleEnum.user,
                                         (cl, chId, userNews, tk) => ReSendNewsChoiceHandle(cl, chId, user, userNews, tk), token),
-                "ReSendNews" => await SendWithCheckRights(client, user, chatId.Value, callbackQuery.Id, RoleEnum.user,
+                "ReSendNews" => await SendWithCheckRights(client, user, chatId.Value, RoleEnum.user,
                                         (cl, chId, userNews, tk) => ReSendNewsHandle(cl, chId, newsNumber.Value, userNews, tk), token),
-                "UserReport" => await SendWithCheckRights(client, user, chatId.Value, callbackQuery.Id, RoleEnum.user,
+                "UserReport" => await SendWithCheckRights(client, user, chatId.Value, RoleEnum.user,
                                         (cl, chId, userNews, tk) => GetUserReportHandle(cl, chId, user, tk), token),
-                "GetSendedNews" => await SendWithCheckRights(client, user, chatId.Value, callbackQuery.Id, RoleEnum.user,
+                "GetSendedNews" => await SendWithCheckRights(client, user, chatId.Value, RoleEnum.user,
                                         (cl, chId, userNews, tk) => GetSendedNewsHandle(cl, chId, user, buttonNumber, tk), token),
-                "ModeratorReport" => await SendWithCheckRights(client, user, chatId.Value, callbackQuery.Id, RoleEnum.user,
+                "ModeratorReport" => await SendWithCheckRights(client, user, chatId.Value, RoleEnum.user,
                                         (cl, chId, userNews, tk) => GetModeratorReportHandle(cl, chId, user, tk), token),
-                "DeleteNews" => await SendWithCheckRights(client, user, chatId.Value, callbackQuery.Id, RoleEnum.user,
+                "DeleteNews" => await SendWithCheckRights(client, user, chatId.Value, RoleEnum.user,
                                         (cl, chId, userNews, tk) => DeleteNewsHandle(cl, chId, userNews, tk), token),
-                "ApproveNewsChoice" => await SendWithCheckRights(client, user, chatId.Value, callbackQuery.Id, RoleEnum.moderator,
+                "ApproveNewsChoice" => await SendWithCheckRights(client, user, chatId.Value, RoleEnum.moderator,
                                         (cl, chId, userNews, tk) => SendNewsChoiceApproveHandle(cl, chId, offset, tk), token),
-                "ApproveNews" => await SendWithCheckRights(client, user, chatId.Value, callbackQuery.Id, RoleEnum.moderator,
+                "ApproveNews" => await SendWithCheckRights(client, user, chatId.Value, RoleEnum.moderator,
                                         (cl, chId, userNews, tk) => SendNewsApproveHandle(cl, userId, chId, newsId.Value, tk), token),
-                "DeclineNews" => await SendWithCheckRights(client, user, chatId.Value, callbackQuery.Id, RoleEnum.moderator,
+                "DeclineNews" => await SendWithCheckRights(client, user, chatId.Value, RoleEnum.moderator,
                                         (cl, chId, userNews, tk) => SendNewsDeclineHandle(cl, userId, chId, newsId.Value, tk), token),
-                "AddAdminChoice" => await SendWithCheckRights(client, user, chatId.Value, callbackQuery.Id, RoleEnum.administrator,
+                "AddAdminChoice" => await SendWithCheckRights(client, user, chatId.Value, RoleEnum.administrator,
                                         (cl, chId, userNews, tk) => SendAddAdminChoiceHandle(cl, chId, user, userNews, tk), token),
-                "AddModeratorChoice" => await SendWithCheckRights(client, user, chatId.Value, callbackQuery.Id, RoleEnum.administrator,
+                "AddModeratorChoice" => await SendWithCheckRights(client, user, chatId.Value, RoleEnum.administrator,
                                         (cl, chId, userNews, tk) => SendAddModeratorChoiceHandle(cl, chId, user, userNews, tk), token),
-                "EditButtonChoice" => await SendWithCheckRights(client, user, chatId.Value, callbackQuery.Id, RoleEnum.administrator,
+                "EditButtonChoice" => await SendWithCheckRights(client, user, chatId.Value, RoleEnum.administrator,
                                         (cl, chId, userNews, tk) => SendEditButtonChoiceHandle(cl, chId, user, userNews, tk), token),
-                "AddAdmin" => await SendWithCheckRights(client, user, chatId.Value, callbackQuery.Id, RoleEnum.administrator,
+                "AddAdmin" => await SendWithCheckRights(client, user, chatId.Value, RoleEnum.administrator,
                                         (cl, chId, userNews, tk) => AddAdminHandle(cl, userId, chId, userNews, tk), token),
-                "AddAdminDecline" => await SendWithCheckRights(client, user, chatId.Value, callbackQuery.Id, RoleEnum.administrator,
+                "AddAdminDecline" => await SendWithCheckRights(client, user, chatId.Value, RoleEnum.administrator,
                                         (cl, chId, userNews, tk) => AddAdminDeclineHandle(cl, userId, chId, userNews, tk), token),
-                "AddModerator" => await SendWithCheckRights(client, user, chatId.Value, callbackQuery.Id, RoleEnum.administrator,
+                "AddModerator" => await SendWithCheckRights(client, user, chatId.Value, RoleEnum.administrator,
                                         (cl, chId, userNews, tk) => AddModeratorHandle(cl, userId, chId, userNews, tk), token),
-                "AddModeratorDecline" => await SendWithCheckRights(client, user, chatId.Value, callbackQuery.Id, RoleEnum.administrator,
+                "AddModeratorDecline" => await SendWithCheckRights(client, user, chatId.Value, RoleEnum.administrator,
                                         (cl, chId, userNews, tk) => AddModeratorDeclineHandle(cl, userId, chId, userNews, tk), token),
-                "EditButton" => await SendWithCheckRights(client, user, chatId.Value, callbackQuery.Id, RoleEnum.administrator,
+                "EditButton" => await SendWithCheckRights(client, user, chatId.Value, RoleEnum.administrator,
                                         (cl, chId, userNews, tk) => EditButtonHandle(cl, userId, chId, userNews, tk), token),
-                "EditButtonDecline" => await SendWithCheckRights(client, user, chatId.Value, callbackQuery.Id, RoleEnum.administrator,
+                "EditButtonDecline" => await SendWithCheckRights(client, user, chatId.Value, RoleEnum.administrator,
                                         (cl, chId, userNews, tk) => EditButtonDeclineHandle(cl, userId, chId, userNews, tk), token),
-                _ => await SendWithCheckRights(client, user, chatId.Value, callbackQuery.Id, RoleEnum.user,
+                _ => await SendWithCheckRights(client, user, chatId.Value, RoleEnum.user,
                                         (cl, chId, userNews, tk) => SendUserNotImplemented(cl, chId), token),
             };
         }
@@ -332,9 +333,9 @@ namespace ROTGBot.Service
             await client.SendMessageAsync(chatId, $"Отчёт по отправленным Вами обращениям:\r\n {report}", cancellationToken: token);
         }
 
-        private async Task GetSendedNewsHandle(TelegramBotClient cl, long chId, Contract.Model.User user, int? buttonNumber, CancellationToken tk)
+        private async Task GetSendedNewsHandle(TelegramBotClient cl, long chId, Contract.Model.User user, int buttonNumber, CancellationToken tk)
         {
-            
+            var allNews = await _newsDataService.GetMyNews(user, buttonNumber - 1, tk);
         }
 
         private async Task GetModeratorReportHandle(TelegramBotClient client, long chatId, Contract.Model.User user, CancellationToken token)
@@ -1159,7 +1160,7 @@ namespace ROTGBot.Service
                 }]);
             sendButtons.Add([new InlineKeyboardButton("Просмотр своих обращений")
                 {
-                    CallbackData = "GetSendedNews"
+                    CallbackData = "GetSendedNews_1"
                 }]);
 
             return sendButtons;
