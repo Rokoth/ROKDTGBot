@@ -696,6 +696,50 @@ namespace ROTGBot.Service
             }
         }
 
+        private async Task AddButtonAccepted(TelegramBotClient client, Guid moderatorId, long chatId, News userNews, CancellationToken token)
+        {
+            var messages = await _newsDataService.GetNewsMessages(userNews.Id, token);
+
+            if (messages.Count == 0)
+            {
+                await client.SendMessageAsync(chatId, "Не отправлено ни одной кнопки", cancellationToken: token);
+                return;
+            }
+
+            var settings = ParseButtonSetting(messages);
+
+            if (settings.Count == 0)
+            {
+                await client.SendMessageAsync(chatId, "Не отправлено ни одной кнопки", cancellationToken: token);
+                return;
+            }
+
+            var groupped = settings.GroupBy(s => s.Number);
+            if (groupped.Any(s => s.Count() > 1))
+            {
+                await client.SendMessageAsync(chatId, "Для некоторых кнопок отправлено больше одной настройки, перезапустите настройку", cancellationToken: token);
+                return;
+            }
+
+            var allButtons = await _buttonsDataService.GetAllButtons(token);
+
+            foreach (var button in allButtons)
+            {
+                var newItem = settings.FirstOrDefault(s => s.Number == button.ButtonNumber);
+                if (newItem != null)
+                {
+                    await _buttonsDataService.SetButtonSend(button.Id, newItem.Name, token);
+                }
+                else
+                {
+                    await _buttonsDataService.RemoveButtonSend(button.Id, token);
+                }
+            }
+
+            await _newsDataService.SetNewsApproved(userNews.Id, moderatorId, token);
+            await client.SendMessageAsync(chatId, "Кнопки сохранены", cancellationToken: token);
+        }
+
         private async Task EditButtonAccepted(TelegramBotClient client, Guid moderatorId, long chatId, News userNews, CancellationToken token)
         {
             var messages = await _newsDataService.GetNewsMessages(userNews.Id, token);
@@ -757,6 +801,43 @@ namespace ROTGBot.Service
         }
 
         private static List<ButtonSetting> ParseButtonsSettings(IEnumerable<NewsMessage> messages)
+        {
+            var buttons = new List<string>();
+
+            foreach (var message in messages.Where(s => s.TextValue != null))
+            {
+                var values = message.TextValue?.Split(["\r\n", ";"],
+                    StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries).Where(s => s != null && s != string.Empty);
+
+                if (values?.Any() == true)
+                {
+                    buttons.AddRange(values);
+                }
+            }
+
+            var numbers = new List<ButtonSetting>();
+            foreach (var item in buttons)
+            {
+                var itemElements = item.Split(":").Select(s => s.Trim()).ToArray();
+                if (int.TryParse(itemElements[0], out int num))
+                {
+                    string? name = null;
+                    if (itemElements.Length > 1)
+                    {
+                        name = itemElements[1];
+                    }
+                    numbers.Add(new ButtonSetting()
+                    {
+                        Number = num,
+                        Name = name
+                    });
+                }
+            }
+
+            return numbers;
+        }
+
+        private static ButtonSetting ParseButtonSetting(NewsMessage message)
         {
             var buttons = new List<string>();
 
