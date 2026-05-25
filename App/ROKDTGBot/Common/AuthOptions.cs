@@ -29,7 +29,7 @@ namespace Common
         /// <summary>
         /// кодировка
         /// </summary>
-        public string EncodingDefault { get; set; } = "";
+        public string EncodingDefault { get; set; } = "ASCII";
 
         /// <summary>
         /// получить ключ
