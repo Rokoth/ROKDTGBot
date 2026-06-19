@@ -1,6 +1,9 @@
 ﻿using ROTGBot.Contract.Model;
 using ROTGBot.Db.Interface;
 using ROTGBot.Db.Model;
+using System.Linq;
+using System.Threading;
+using Telegram.BotAPI.AvailableTypes;
 using User = Telegram.BotAPI.AvailableTypes.User;
 
 namespace ROTGBot.Service
@@ -13,7 +16,7 @@ namespace ROTGBot.Service
         private readonly IRepository<Role> _roleRepo = roleRepo;
         private readonly IRepository<UserRole> _userRoleRepo = userRoleRepo;
 
-        public async Task<Contract.Model.User> GetOrAddUser(User tguser, long chatId, CancellationToken cancellationToken)
+        public async Task<Contract.Model.User?> GetOrAddUser(User tguser, long chatId, CancellationToken cancellationToken)
         {
             var user = (await _userRepo.GetAsync(new Filter<Db.Model.User>()
             {
@@ -35,15 +38,15 @@ namespace ROTGBot.Service
                     IsBlocked = false
                 }, true, cancellationToken);
 
-                var userRole = (await _roleRepo.GetAsync(new Filter<Role>() { Selector = s => s.Name == "user" }, cancellationToken)).First();
+                //var userRole = (await _roleRepo.GetAsync(new Filter<Role>() { Selector = s => s.Name == "user" }, cancellationToken)).First();
 
-                await _userRoleRepo.AddAsync(new UserRole()
-                {
-                    Id = Guid.NewGuid(),
-                    IsDeleted = false,
-                    RoleId = userRole.Id,
-                    UserId = user.Id
-                }, true, cancellationToken);
+                //await _userRoleRepo.AddAsync(new UserRole()
+                //{
+                //    Id = Guid.NewGuid(),
+                //    IsDeleted = false,
+                //    RoleId = userRole.Id,
+                //    UserId = user.Id
+                //}, true, cancellationToken);
             }
             else
             {
@@ -53,8 +56,11 @@ namespace ROTGBot.Service
             return await Map(user, cancellationToken);
         }
 
-        private async Task<Contract.Model.User> Map(Db.Model.User user, CancellationToken cancellationToken)
+        private async Task<Contract.Model.User?> Map(Db.Model.User? user, CancellationToken cancellationToken)
         {
+            if (user == null)
+                return null;
+
             var roles = (await GetUserRoles(user.Id, cancellationToken)).Select(s => Enum.Parse<RoleEnum>(s))?.ToList() ?? [RoleEnum.user];
             return new Contract.Model.User()
             {
@@ -93,7 +99,9 @@ namespace ROTGBot.Service
 
             foreach(var res in result)
             {
-                users.Add(await Map(res, token));
+                var resItem = await Map(res, token);
+                if(resItem != null)
+                    users.Add(resItem);
             }
 
             return users.Where(s => s.IsModerator);
@@ -144,19 +152,52 @@ namespace ROTGBot.Service
             return user.IsBlocked;
         }
 
-        public Task<IEnumerable<Contract.Model.User>> GetNewUsers(CancellationToken token)
+        public async Task<IEnumerable<Contract.Model.User>> GetNewUsers(CancellationToken token)
         {
-            
+            var allUsers = await _userRepo.GetAsync(new Filter<Db.Model.User>()
+            {
+                Selector = s=> !s.IsDeleted && s.IsBlocked
+            }, token);
+
+            var allUserRoles = await _userRoleRepo.GetAsync(new Filter<UserRole>() { 
+                Selector = s => !s.IsDeleted
+            }, token);
+
+            var newUsersIds = allUsers.Select(s => s.Id).Except(allUserRoles.Select(s => s.UserId).Distinct());
+
+            var newUsers = allUsers.Where(s => newUsersIds.Contains(s.Id));
+
+            List<Contract.Model.User> result = [];
+
+            foreach(var item in newUsers)
+            {
+                var resItem = await Map(item, token);
+                if(resItem != null)
+                    result.Add(resItem);
+            }
+
+            return result;
         }
 
-        public Task<Contract.Model.User> GetOrAddUser(User tguser, long? chatId, CancellationToken cancellationToken)
+        public async Task<Contract.Model.User?> GetUserByLoginOrNumber(string textData, CancellationToken token)
         {
+            Db.Model.User? user;
+            if (int.TryParse(textData, out int number))
+            {
+                user = (await _userRepo.GetAsync(new Filter<Db.Model.User>()
+                {
+                    Selector = s => s.Number == number
+                }, token)).FirstOrDefault();
+            }
+            else
+            {
+                user = (await _userRepo.GetAsync(new Filter<Db.Model.User>()
+                {
+                    Selector = s => s.TGLogin == textData
+                }, token)).FirstOrDefault();
+            }                 
             
-        }
-
-        public Task<Contract.Model.User> GetUserByLoginOrNumber(string textData, CancellationToken token)
-        {
-            
+            return await Map(user, token);
         }
     }
 }
