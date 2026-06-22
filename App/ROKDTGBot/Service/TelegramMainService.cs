@@ -1204,16 +1204,20 @@ namespace ROTGBot.Service
             {
                 CallbackData = "AddAdmin"
             };
+            var button2 = new InlineKeyboardButton("Отменить")
+            {
+                CallbackData = "AddAdminDecline"
+            };
             ReplyMarkup replyMarkup = new InlineKeyboardMarkup(
                 new List<List<InlineKeyboardButton>>()
                 {
                     new()
                     {
-                        button1
+                        button1, button2
                     }
                 });
 
-            await client.SendMessageAsync(chatId, "Отправьте по одному логины пользователей, которых надо добавить в администраторы и нажмите кнопку Добавить", 
+            await client.SendMessageAsync(chatId, "Отправьте по одному логины пользователей, которых надо добавить в администраторы и нажмите кнопку Добавить, либо Отменить для отмены задания", 
                 replyMarkup: replyMarkup, 
                 cancellationToken: token);
         }
@@ -1252,16 +1256,20 @@ namespace ROTGBot.Service
             {
                 CallbackData = "AddModerator"
             };
+            var button2 = new InlineKeyboardButton("Отменить")
+            {
+                CallbackData = "AddModeratorDecline"
+            };
             ReplyMarkup replyMarkup = new InlineKeyboardMarkup(
                 new List<List<InlineKeyboardButton>>()
                 {
                     new()
                     {
-                        button1
+                        button1, button2
                     }
                 });
 
-            await client.SendMessageAsync(chatId, "Отправьте по одному логины пользователей, которых надо добавить в модераторы и нажмите кнопку Добавить",
+            await client.SendMessageAsync(chatId, "Отправьте по одному логины пользователей, которых надо добавить в модераторы и нажмите кнопку Добавить, либо Отменить для отмены действия",
                 replyMarkup: replyMarkup,
                 cancellationToken: token);
         }
