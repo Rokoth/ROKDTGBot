@@ -1023,8 +1023,8 @@ namespace ROTGBot.Service
 
         private async Task SendEditButtonForUser(TelegramBotClient client, long chatId, Contract.Model.User user, CancellationToken token)
         {
-            var availableButtons = await _buttonsDataService.GetAllButtons(token);            
-            if(availableButtons.Count != 0)
+            var availableButtons = (await _buttonsDataService.GetAllButtons(token)).Where(s => s.ToSend);            
+            if(!availableButtons.Any())
             {
                 await _newsDataService.CreateNews(chatId, user.Id, null, null, "editbutton", "Изменение кнопок", token);
                
@@ -1039,18 +1039,18 @@ namespace ROTGBot.Service
                 ReplyMarkup replyMarkup = new InlineKeyboardMarkup(
                     new List<List<InlineKeyboardButton>>()
                     {
-                    new()
-                    {
-                        button1, button2
-                    }
+                        new()
+                        {
+                            button1, button2
+                        }
                     });
 
 
-                var buttonsView = string.Join("\n", availableButtons.OrderBy(s => s.ButtonNumber).Select(s => $"{s.ButtonNumber}. {s.ChatName}:{s.ThreadName}. Подключена: {(s.ToSend ? "Да" : "Нет")}"));
+                var buttonsView = string.Join("\n", availableButtons.OrderBy(s => s.ButtonNumber).Select(s => $"{s.ButtonNumber}. {s.ChatName}:{s.ThreadName}."));
 
-                await client.SendMessageAsync(chatId, $"Подключенные и доступные кнопки:  \n{buttonsView}. \n\nОтправьте по шаблону ({{номер}} или {{номер:Наименование кнопки}}) настройку кнопки " +
-                    " и нажмите кнопку Сохранить. Если нужных групп или тем нет в списке - " +
-                    "добавьте бота в группу и отправьте в чат одно сообщение (для разбивки по темам - отправьте по одному сообщению в каждой из тем)." +
+                await client.SendMessageAsync(chatId, $"Доступные для редактирования кнопки:  \n{buttonsView}. \n\n" +
+                    $"Отправьте по шаблону ({{номер}} или {{номер:Наименование кнопки}}) настройку кнопки " +
+                    " и нажмите кнопку Сохранить." +
                     " \nПользователь, отправляющий сообщения, должен быть администратором бота.",
                     replyMarkup: replyMarkup,
                     cancellationToken: token);
