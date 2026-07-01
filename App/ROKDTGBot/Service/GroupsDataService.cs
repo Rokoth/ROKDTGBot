@@ -7,7 +7,7 @@ namespace ROTGBot.Service
     {
         private readonly IRepository<Groups> _groupsRepo = groupsRepo;
 
-        public async Task AddGroupIfNotExists(long chatId, string? title, string description, CancellationToken token)
+        public async Task<bool> AddGroupIfNotExists(long chatId, string? title, string description, CancellationToken token)
         {
             var existsGroups = (await _groupsRepo.GetAsync(new Filter<Groups>()
             {
@@ -26,6 +26,8 @@ namespace ROTGBot.Service
                     SendNews = false
                 }, true, token);
             }
+
+            return true;
         }
     }
 }

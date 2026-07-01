@@ -227,7 +227,7 @@ namespace ROTGBot.Service
                 "SearchNewsChoice" => await SendWithCheckRights(client, user, chatId, RoleEnum.moderator,
                                         (cl, chId, userNews, tk) => SearchNewsChoiceHandle(cl, chId, user, userNews, tk), token),                
                 "SearchNews" => await SendWithCheckRights(client, user, chatId, RoleEnum.moderator,
-                                        (cl, chId, userNews, tk) => SearchNewsHandle(cl, userId, chId, searchData, newsId.Value, tk), token),
+                                        (cl, chId, userNews, tk) => SearchNewsHandle(cl, userId, chId, searchData, userNews, tk), token),
                 _ => await SendWithCheckRights(client, user, chatId, RoleEnum.user,
                                         (cl, chId, userNews, tk) => SendUserNotImplemented(cl, chId), token),
             };
@@ -335,6 +335,10 @@ namespace ROTGBot.Service
             }
         }
 
+        private async Task SearchNewsMessageNotFound(TelegramBotClient client, long chatId)
+        {
+            throw new NotImplementedException();
+        }
 
         private async Task AddModeratorHandle(TelegramBotClient client, Guid moderatorId, long chatId, News? userNews, CancellationToken token)
         {

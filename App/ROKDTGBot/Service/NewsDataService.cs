@@ -236,5 +236,10 @@ namespace ROTGBot.Service
 
             return result;
         }
+
+        public Task<List<Contract.Model.News>> GetAllNews(CancellationToken token)
+        {
+            throw new NotImplementedException();
+        }
     }
 }
