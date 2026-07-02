@@ -227,6 +227,12 @@ namespace ROTGBot.Service
                                         (cl, chId, userNews, tk) => SendAdditionalMessageChoiceHandle(cl, chId, user, userNews, newsNumber.Value, tk), token),
                 "SendAdditionalMessage" => await SendWithCheckRights(client, user, chatId.Value, RoleEnum.user,
                                         (cl, chId, userNews, tk) => SendAdditionalMessageHandle(cl, chId, userNews, tk), token),
+                "SendModeratorRememberChoice" => await SendWithCheckRights(client, user, chatId.Value, RoleEnum.user,
+                                        (cl, chId, userNews, tk) => SendModeratorRememberChoiceHandle(cl, chId, user, userNews, tk), token),
+                "SendModeratorRemember" => await SendWithCheckRights(client, user, chatId.Value, RoleEnum.user,
+                                        (cl, chId, userNews, tk) => SendModeratorRememberHandle(cl, chId, userNews, tk), token),
+                "SendModeratorRememberDecline" => await SendWithCheckRights(client, user, chatId.Value, RoleEnum.user,
+                                        (cl, chId, userNews, tk) => SendModeratorRememberDeclineHandle(cl, chId, user, userNews, tk), token),
                 "ReSendNewsChoice" => await SendWithCheckRights(client, user, chatId.Value, RoleEnum.user,
                                         (cl, chId, userNews, tk) => ReSendNewsChoiceHandle(cl, chId, user, userNews, tk), token),
                 "ReSendNews" => await SendWithCheckRights(client, user, chatId.Value, RoleEnum.user,
@@ -266,6 +272,21 @@ namespace ROTGBot.Service
                 _ => await SendWithCheckRights(client, user, chatId.Value, RoleEnum.user,
                                         (cl, chId, userNews, tk) => SendUserNotImplemented(cl, chId), token),
             };
+        }
+
+        private async Task SendModeratorRememberDeclineHandle(TelegramBotClient cl, long chId, Contract.Model.User user, News? userNews, CancellationToken tk)
+        {
+            throw new NotImplementedException();
+        }
+
+        private async Task SendModeratorRememberHandle(TelegramBotClient cl, long chId, News? userNews, CancellationToken tk)
+        {
+            throw new NotImplementedException();
+        }
+
+        private async Task SendModeratorRememberChoiceHandle(TelegramBotClient cl, long chId, Contract.Model.User user, News? userNews, CancellationToken tk)
+        {
+            throw new NotImplementedException();
         }
 
         private async Task<bool> SendWithCheckRights(
