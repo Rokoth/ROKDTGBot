@@ -706,34 +706,19 @@ namespace ROTGBot.Service
                 return;
             }
 
-            var settings = ParseButtonSetting(messages);
+            var settings = ParseButtonSetting(messages.FirstOrDefault()!);
 
-            if (settings.Count == 0)
+            if (settings==null)
             {
                 await client.SendMessageAsync(chatId, "Не отправлено ни одной кнопки", cancellationToken: token);
                 return;
             }
 
-            var groupped = settings.GroupBy(s => s.Number);
-            if (groupped.Any(s => s.Count() > 1))
-            {
-                await client.SendMessageAsync(chatId, "Для некоторых кнопок отправлено больше одной настройки, перезапустите настройку", cancellationToken: token);
-                return;
-            }
-
             var allButtons = await _buttonsDataService.GetAllButtons(token);
-
-            foreach (var button in allButtons)
+            var button = allButtons.FirstOrDefault(s => s.ButtonNumber == settings.Number);
+            if (button != null)
             {
-                var newItem = settings.FirstOrDefault(s => s.Number == button.ButtonNumber);
-                if (newItem != null)
-                {
-                    await _buttonsDataService.SetButtonSend(button.Id, newItem.Name, token);
-                }
-                else
-                {
-                    await _buttonsDataService.RemoveButtonSend(button.Id, token);
-                }
+                await _buttonsDataService.SetButtonSend(button.Id, settings.Name, token);
             }
 
             await _newsDataService.SetNewsApproved(userNews.Id, moderatorId, token);
@@ -916,6 +901,12 @@ namespace ROTGBot.Service
             await client.SendMessageAsync(chatId, "Нет задач на удаление кнопок");
         }
 
+        private static async Task AddButtonMessageNotFound(TelegramBotClient client, long chatId)
+        {
+            await client.SendMessageAsync(chatId, "Нет задач на добавление кнопок");
+        }
+
+        
         private static async Task AddModeratorMessageNotFound(TelegramBotClient client, long chatId)
         {
             await client.SendMessageAsync(chatId, "Нет задач на добавление модератора");
