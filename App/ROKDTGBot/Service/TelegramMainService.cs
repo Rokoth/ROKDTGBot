@@ -194,6 +194,8 @@ namespace ROTGBot.Service
                                         (cl, chId, userNews, tk) => NewsSearchByUserHandle(cl, userId, chId, userNews, tk), token),
                 "AddAdminDecline" => await SendWithCheckRights(client, user, chatId.Value,  callbackQuery.Id, RoleEnum.administrator,
                                         (cl, chId,  userNews, tk) => AddAdminDeclineHandle(cl, userId, chId, userNews,  tk), token),
+                "NewsSearchByUserDecline" => await SendWithCheckRights(client, user, chatId.Value, callbackQuery.Id, RoleEnum.administrator,
+                                        (cl, chId, userNews, tk) => NewsSearchByUserDeclineHandle(cl, userId, chId, userNews, tk), token),
                 "AddModerator" => await SendWithCheckRights(client, user, chatId.Value,  callbackQuery.Id, RoleEnum.administrator,
                                         (cl, chId,  userNews, tk) => AddModeratorHandle(cl, userId, chId, userNews,  tk), token),
                 "AddModeratorDecline" => await SendWithCheckRights(client, user, chatId.Value,  callbackQuery.Id, RoleEnum.administrator,
@@ -205,6 +207,26 @@ namespace ROTGBot.Service
                 _ => await SendWithCheckRights(client, user, chatId.Value,  callbackQuery.Id, RoleEnum.user,
                                         (cl, chId,  userNews, tk) => SendUserNotImplemented(cl, chId), token),
             };
+        }
+
+        private async Task SendNewsSearchByNumberChoiceHandle(TelegramBotClient cl, long chId, Contract.Model.User user, News? userNews, CancellationToken tk)
+        {
+            throw new NotImplementedException();
+        }
+
+        private async Task NewsSearchByNumberHandle(TelegramBotClient cl, Guid userId, long chId, News? userNews, CancellationToken tk)
+        {
+            throw new NotImplementedException();
+        }
+
+        private async Task NewsSearchByUserDeclineHandle(TelegramBotClient cl, Guid userId, long chId, News? userNews, CancellationToken tk)
+        {
+            throw new NotImplementedException();
+        }
+
+        private async Task NewsSearchByUserHandle(TelegramBotClient cl, Guid userId, long chId, News? userNews, CancellationToken tk)
+        {
+            throw new NotImplementedException();
         }
 
         private async Task<bool> SendWithCheckRights(
@@ -433,6 +455,20 @@ namespace ROTGBot.Service
                 await SendAddModeratorForUser(client, chatId, user,  token);
             }
         }
+
+        private async Task SendNewsSearchByUserChoiceHandle(TelegramBotClient client, long chatId, Contract.Model.User user, News? userNews, CancellationToken token)
+        {
+            if (userNews != null)
+            {
+                await SendUserRemember(client, chatId, userNews, token);
+            }
+            else
+            {
+                await SendNewsSearchByUserChoice(client, chatId, user, token);
+            }
+        }
+
+        
 
         private async Task SendEditButtonChoiceHandle(TelegramBotClient client, long chatId, Contract.Model.User user, News? userNews, CancellationToken token)
         {
