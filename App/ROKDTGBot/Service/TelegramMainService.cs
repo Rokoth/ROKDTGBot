@@ -37,8 +37,8 @@ namespace ROTGBot.Service
             _userDataService = userDataService;
             _newsDataService = newsDataService;
             _buttonsDataService = buttonsDataService;
-            var botSettings = configuration.GetSection("BotSettings").Get<BotSettings>();
-            botToken = botSettings?.Token ?? botToken;
+            var botSettings = configuration.GetSection("BotSettings");
+            botToken = botSettings?.GetValue<string>("Token") ?? botToken;
         }
 
         public async Task<int> Execute(int offset)
@@ -273,7 +273,17 @@ namespace ROTGBot.Service
             };
         }
 
-        private async Task DeleteAdminHandle(TelegramBotClient cl, Guid userId, long chId, News? userNews, CancellationToken tk)
+        private async Task DeleteModeratorDeclineHandle(TelegramBotClient cl, Guid userId, long chId, News? userNews, CancellationToken tk)
+        {
+            throw new NotImplementedException();
+        }
+
+        private async Task DeleteModeratorHandle(TelegramBotClient cl, Guid userId, long chId, News? userNews, CancellationToken tk)
+        {
+            throw new NotImplementedException();
+        }
+
+        private async Task DeleteAdminDeclineHandle(TelegramBotClient cl, Guid userId, long chId, News? userNews, CancellationToken tk)
         {
             throw new NotImplementedException();
         }
@@ -312,6 +322,19 @@ namespace ROTGBot.Service
                 await DeleteNewsMessageNotFound(client, chatId);
             }
         }
+
+        private async Task DeleteAdminHandle(TelegramBotClient client, Guid userId, long chatId, News? userNews, CancellationToken token)
+        {
+            if (userNews != null)
+            {
+                await DeleteAdminMessageAccepted(client, chatId, userNews, token);
+            }
+            else
+            {
+                await DeleteAdminMessageNotFound(client, chatId);
+            }
+        }
+
 
         private async Task SendNewsHandle(TelegramBotClient client, long chatId, News? userNews, CancellationToken token)
         {
@@ -1156,9 +1179,45 @@ namespace ROTGBot.Service
             await client.SendMessageAsync(chatId, "Обращение удалено", cancellationToken: token);
         }
 
+        private async Task DeleteAdminMessageAccepted(TelegramBotClient client, Guid userId, long chatId, News userNews, CancellationToken token)
+        {
+            var messages = await _newsDataService.GetNewsMessages(userNews.Id, token);
+
+            if(messages.Count == 0)
+            {
+                await client.SendMessageAsync(chatId, "Отправьте логин или номер пользователя еще раз, не удалось обработать сообщение", cancellationToken: token);
+                return;
+            }
+
+            var message = messages.OrderByDescending(s => s.TGMessageId).FirstOrDefault()?.TextValue;
+
+
+            if (string.IsNullOrEmpty(message))
+            {
+                await client.SendMessageAsync(chatId, "Отправьте логин или номер пользователя еще раз, не удалось обработать сообщение", cancellationToken: token);
+                return;
+            }
+
+            var user = await _userDataService.GetUserByLoginOrNumber(message, token);
+            if(user == null)
+            {
+                await client.SendMessageAsync(chatId, "Отправьте логин или номер пользователя еще раз, не удалось найти указанного пользователя", cancellationToken: token);
+                return;
+            }
+
+            await _userDataService.UnSetRole(user.Id, RoleEnum.administrator, token);
+            await _newsDataService.SetNewsApproved(userNews.Id, userId, token);
+            await client.SendMessageAsync(chatId, "Пользователь удален из группы администраторов", cancellationToken: token);
+        }
+
         private static async Task DeleteNewsMessageNotFound(TelegramBotClient client, long chatId)
         {
             await client.SendMessageAsync(chatId, "Нет неподтвержденных обращений");
+        }
+
+        private async Task DeleteAdminMessageNotFound(TelegramBotClient client, long chatId)
+        {
+            await client.SendMessageAsync(chatId, "Нет задач на удаление администратора");
         }
 
         private static async Task ApproveNewsMessageNotFound(TelegramBotClient client, long chatId)
@@ -1225,11 +1284,7 @@ namespace ROTGBot.Service
         private async Task SendDeleteAdminForUser(TelegramBotClient client, long chatId, Contract.Model.User user, CancellationToken token)
         {
             await _newsDataService.CreateNews(chatId, user.Id, null, null, "deleteadmin", "Удаление администратора", token);
-
-            var button1 = new InlineKeyboardButton("Удалить")
-            {
-                CallbackData = "DeleteAdmin"
-            };
+                       
             var button2 = new InlineKeyboardButton("Отменить")
             {
                 CallbackData = "DeleteAdminDecline"
@@ -1239,11 +1294,11 @@ namespace ROTGBot.Service
                 {
                     new()
                     {
-                        button1, button2
+                        button2
                     }
                 });
 
-            await client.SendMessageAsync(chatId, "Отправьте по одному логины пользователей, которых надо удалить из администраторов и нажмите кнопку Удалить, либо Отменить для отмены действия",
+            await client.SendMessageAsync(chatId, "Отправьте логин или номер пользователя, которого надо удалить из администраторов, либо Отменить для отмены действия",
                 replyMarkup: replyMarkup,
                 cancellationToken: token);
         }        
@@ -1277,11 +1332,7 @@ namespace ROTGBot.Service
         private async Task SendDeleteModeratorForUser(TelegramBotClient client, long chatId, Contract.Model.User user, CancellationToken token)
         {
             await _newsDataService.CreateNews(chatId, user.Id, null, null, "deletemoderator", "Удаление модератора", token);
-
-            var button1 = new InlineKeyboardButton("Удалить")
-            {
-                CallbackData = "DeleteModerator"
-            };
+                      
             var button2 = new InlineKeyboardButton("Отменить")
             {
                 CallbackData = "DeleteModeratorDecline"
@@ -1291,11 +1342,11 @@ namespace ROTGBot.Service
                 {
                     new()
                     {
-                        button1, button2
+                        button2
                     }
                 });
 
-            await client.SendMessageAsync(chatId, "Отправьте по одному логины пользователей, которых надо удалить из модераторов и нажмите кнопку Удалить, либо Отменить для отмены действия",
+            await client.SendMessageAsync(chatId, "Отправьте логин или номер пользователя, которого надо удалить из модераторов, либо Отменить для отмены действия",
                 replyMarkup: replyMarkup,
                 cancellationToken: token);
         }        

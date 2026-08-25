@@ -12,5 +12,6 @@ namespace ROTGBot.Service
         Task SetRole(string login, RoleEnum role, CancellationToken token);
         Task<bool> SwitchUserNotify(Guid userId, CancellationToken token);
         Task<bool> UnBlockUser(Guid userId, CancellationToken token);
+        Task UnSetRole(Guid id, RoleEnum administrator, CancellationToken token);
     }
 }
