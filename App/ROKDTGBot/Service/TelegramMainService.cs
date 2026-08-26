@@ -13,6 +13,7 @@ namespace ROTGBot.Service
     public class TelegramMainService : ITelegramMainService
     {
         private readonly string botToken = "token";
+        private readonly string? serverAddress = string.Empty;
 
         private const string HelloMessage = "Привет, {0}! Для работы нажмите кнопку меню - Старт или введите /start";
 
@@ -38,13 +39,14 @@ namespace ROTGBot.Service
             _newsDataService = newsDataService;
             _buttonsDataService = buttonsDataService;
             var botSettings = configuration.GetSection("BotSettings").Get<BotSettings>();
+            serverAddress = botSettings?.ServerAddress;
             botToken = botSettings?.Token ?? botToken;
         }
 
         public async Task<int> Execute(int offset)
         {
             var cancellationToken = new CancellationTokenSource(60000).Token;
-            var client = new TelegramBotClient(botToken);
+            TelegramBotClient client = CreateTelegramBot();
 
             var updates = await client.GetUpdatesAsync(offset);
             if ((updates?.Any()) != true)
@@ -55,6 +57,19 @@ namespace ROTGBot.Service
             await HandleUpdates(client, updates, cancellationToken);
 
             return updates.Last().UpdateId + 1;
+        }
+
+        private TelegramBotClient CreateTelegramBot()
+        {
+            if (string.IsNullOrEmpty(serverAddress))
+            {
+                return new TelegramBotClient(new TelegramBotClientOptions(botToken));
+            }
+
+            return new TelegramBotClient(new TelegramBotClientOptions(botToken)
+            {
+                ServerAddress = serverAddress
+            });
         }
 
         private async Task HandleUpdates(TelegramBotClient client, IEnumerable<Update> updates, CancellationToken cancellationToken)
@@ -1290,7 +1305,7 @@ namespace ROTGBot.Service
 
         public async Task SetCommands()
         {
-            var client = new TelegramBotClient(botToken);
+            TelegramBotClient client = CreateTelegramBot();
             _ = await client.SetMyCommandsAsync(new SetMyCommandsArgs([new("start", "Начать работу")]));
         }
 
