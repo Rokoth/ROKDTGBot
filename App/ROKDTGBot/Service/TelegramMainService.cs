@@ -248,10 +248,7 @@ namespace ROTGBot.Service
             };
         }
 
-        private async Task SendAnswerNewsHandle(TelegramBotClient cl, Guid userId, long chId, Guid value, CancellationToken tk)
-        {
-            throw new NotImplementedException();
-        }
+        
 
         private async Task<bool> SendWithCheckRights(
             TelegramBotClient client,
@@ -338,6 +335,18 @@ namespace ROTGBot.Service
             }
         }
 
+        private async Task SendAnswerNewsHandle(TelegramBotClient client, Guid userId, long chatId, News? userNews, CancellationToken token)
+        {
+            if (userNews != null)
+            {
+                await SendAnswerNewsAccepted(client, userId, chatId, userNews, token);
+            }
+            else
+            {
+                await SendAnswerNewsMessageNotFound(client, chatId);
+            }
+        }                
+
         private async Task SearchNewsHandle(TelegramBotClient client, Guid userId, long chatId, string searchData, News? userNews, CancellationToken token)
         {
             if (userNews != null)
@@ -350,10 +359,7 @@ namespace ROTGBot.Service
             }
         }
 
-        private async Task SearchNewsMessageNotFound(TelegramBotClient client, long chatId)
-        {
-            throw new NotImplementedException();
-        }
+        
 
         private async Task AddModeratorHandle(TelegramBotClient client, Guid moderatorId, long chatId, News? userNews, CancellationToken token)
         {
@@ -493,7 +499,7 @@ namespace ROTGBot.Service
             }
             else
             {
-                await SendAnswerNewsChoice(client, chatId, user, token);
+                await SendAnswerNewsChoice(client, chatId, user.Id, token);
             }
         }
 
@@ -595,6 +601,51 @@ namespace ROTGBot.Service
                     await _userDataService.SetRole(login, role , token);
                 }
             }
+        }
+
+        private async Task SendAnswerNewsAccepted(TelegramBotClient client, Guid userId, long chatId, News userNews, CancellationToken token)
+        {
+            var messages = await _newsDataService.GetNewsMessages(userNews.Id, token);
+            var args = messages?.Select(s => s.TextValue?.Trim()).Where(s => !string.IsNullOrEmpty(s)) ?? [];
+            
+            if(!args.Any())
+            {
+                await SendAnswerNewsChoice(client, chatId, userId, token);
+                return;
+            }
+                        
+            int? newsNumber = null;
+            News? toSendNews = null;
+
+            foreach (var arg in args)
+            {
+                if(newsNumber == null)
+                {
+                    if(int.TryParse(arg, out int intTemp))
+                    {                        
+                        toSendNews = await _newsDataService.GetNewsByNumber(intTemp, token);
+                        if(toSendNews != null)
+                        {
+                            newsNumber = intTemp;
+                        }                        
+                    }
+                }
+                else
+                {
+                    var user = await _userDataService.GetUser(toSendNews.UserId, token);
+                    await client.SendMessageAsync(user.ChatId, arg, cancellationToken: token);
+                    await _newsDataService.SetNewsApproved(userNews.Id, userId, token);
+                    await client.SendMessageAsync(chatId, $"Ответ на обращение {newsNumber} отправлен", cancellationToken: token);
+                    return;
+                }
+            }
+            if (newsNumber == null)
+            {
+                await SendAnswerNewsChoice(client, chatId, userId, token);
+                return;
+            }
+
+            await client.SendMessageAsync(chatId, $"Отправьте сообщение в ответ обращения {newsNumber} либо Отмена для отмены", replyMarkup: GetSendAnswerReplyMarkup(), cancellationToken: token);
         }
 
         private async Task SearchNewsAccepted(TelegramBotClient client, Guid userId, long chatId, News userNews, string searchData, CancellationToken token)
@@ -786,6 +837,16 @@ namespace ROTGBot.Service
             await client.SendMessageAsync(chatId, "Нет задач на добавление модератора");
         }
 
+        private async Task SearchNewsMessageNotFound(TelegramBotClient client, long chatId)
+        {
+            await client.SendMessageAsync(chatId, "Нет задач на поиск обращения");
+        }
+
+        private async Task SendAnswerNewsMessageNotFound(TelegramBotClient client, long chatId)
+        {
+            await client.SendMessageAsync(chatId, "Нет задач на отправку ответа на обращение");
+        }
+
         private static async Task SendUserHasNoRights(TelegramBotClient client, long chatId)
         {
             await client.SendMessageAsync(chatId, "У вас нет прав на это действие");
@@ -842,10 +903,17 @@ namespace ROTGBot.Service
             await client.SendMessageAsync(chatId, "Отправьте одно или несколько сообщений и нажмите кнопку Отправить", replyMarkup: replyMarkup, cancellationToken: token);
         }
 
-        private async Task SendAnswerNewsChoice(TelegramBotClient client, long chatId, Contract.Model.User user, CancellationToken token)
+        private async Task SendAnswerNewsChoice(TelegramBotClient client, long chatId, Guid userId, CancellationToken token)
         {
-            await _newsDataService.CreateNews(chatId, user.Id, null, null, "answernews", "Ответ на обращение", token);
-                        
+            await _newsDataService.CreateNews(chatId, userId, null, null, "answernews", "Ответ на обращение", token);
+            
+            await client.SendMessageAsync(chatId, "Отправьте номер обращения, затем сообщение, либо нажмите Отмена для отмены отправки ответа",
+                replyMarkup: GetSendAnswerReplyMarkup(),
+                cancellationToken: token);
+        }
+
+        private static ReplyMarkup GetSendAnswerReplyMarkup()
+        {
             var button1 = new InlineKeyboardButton("Отменить")
             {
                 CallbackData = "AnswerNewsDecline"
@@ -858,10 +926,7 @@ namespace ROTGBot.Service
                         button1
                     }
                 });
-
-            await client.SendMessageAsync(chatId, "Отправьте сообщение, либо нажмите Отмена для отмены отправки ответа",
-                replyMarkup: replyMarkup,
-                cancellationToken: token);
+            return replyMarkup;
         }
 
         private async Task SearchNewsChoice(TelegramBotClient client, long chatId, Contract.Model.User user, CancellationToken token)
