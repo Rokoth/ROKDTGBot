@@ -768,6 +768,28 @@ namespace ROTGBot.Service
                 cancellationToken: token);
         }
 
+        private async Task SendNewsSearchByUserChoice(TelegramBotClient client, long chatId, Contract.Model.User user, CancellationToken token)
+        {
+            await _newsDataService.CreateNews(chatId, user.Id, null, null, "searchnewsbyuser", "Поиск обращения по пользователю", token);
+
+            var button1 = new InlineKeyboardButton("Отмена")
+            {
+                CallbackData = "DeclineSendNewsSearchByUser"
+            };
+            ReplyMarkup replyMarkup = new InlineKeyboardMarkup(
+                new List<List<InlineKeyboardButton>>()
+                {
+                    new()
+                    {
+                        button1
+                    }
+                });
+
+            await client.SendMessageAsync(chatId, "Отправьте логин или номер пользователя, по которому надо найти обращения, либо Отмена для отмены поиска",
+                replyMarkup: replyMarkup,
+                cancellationToken: token);
+        }
+
         private async Task SendEditButtonForUser(TelegramBotClient client, long chatId, Contract.Model.User user, CancellationToken token)
         {
             var availableButtons = await _buttonsDataService.GetAllButtons(token);            
