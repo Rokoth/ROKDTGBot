@@ -408,10 +408,7 @@ namespace ROTGBot.Service
             }
         }
 
-        private async Task ViewUserRolesMessageNotFound(TelegramBotClient client, long chatId)
-        {
-            throw new NotImplementedException();
-        }
+        
         
         private async Task BlockUserHandle(TelegramBotClient client, Guid moderatorId, long chatId, News? userNews, CancellationToken token)
         {
@@ -982,8 +979,6 @@ namespace ROTGBot.Service
                 };
             });
             
-
-
             await client.SendMessageAsync(chatId, $"Права пользователя {user.Number}:{user.TGLogin}: {string.Join(";", roles)}", cancellationToken: token);           
         }
 
@@ -1161,6 +1156,11 @@ namespace ROTGBot.Service
         private static async Task BlockUserMessageNotFound(TelegramBotClient client, long chatId)
         {
             await client.SendMessageAsync(chatId, "Нет задач на блокировку пользователя");
+        }
+
+        private static async Task ViewUserRolesMessageNotFound(TelegramBotClient client, long chatId)
+        {
+            await client.SendMessageAsync(chatId, "Нет задач на просмотр прав пользователя");
         }
 
         private static async Task SendUserHasNoRights(TelegramBotClient client, long chatId)

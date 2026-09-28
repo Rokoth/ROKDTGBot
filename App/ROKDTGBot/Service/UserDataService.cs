@@ -25,6 +25,11 @@ namespace ROTGBot.Service
 
             if (user == null)
             {
+                var maxNumber = (await _userRepo.GetAsync(new Filter<Db.Model.User>()
+                {
+                    Selector = s => s.IsDeleted == false
+                }, cancellationToken)).Max(s=>s.Number);
+
                 user = await _userRepo.AddAsync(new Db.Model.User()
                 {
                     Id = Guid.NewGuid(),
@@ -35,7 +40,8 @@ namespace ROTGBot.Service
                     TGId = tguser.Id,
                     ChatId = chatId,
                     IsNotify = false,
-                    IsBlocked = false
+                    IsBlocked = false,
+                    Number= maxNumber+1
                 }, true, cancellationToken);
 
                 //var userRole = (await _roleRepo.GetAsync(new Filter<Role>() { Selector = s => s.Name == "user" }, cancellationToken)).First();
@@ -72,7 +78,8 @@ namespace ROTGBot.Service
                 Name = user.Name,
                 Roles = roles,
                 TGId = user.TGId,
-                TGLogin = user.TGLogin
+                TGLogin = user.TGLogin,
+                Number=user.Number
             };
         }
 
@@ -198,6 +205,11 @@ namespace ROTGBot.Service
             }                 
             
             return await Map(user, token);
+        }
+
+        public Task UnSetRole(Guid id, RoleEnum administrator, CancellationToken token)
+        {
+            throw new NotImplementedException();
         }
     }
 }

@@ -15,7 +15,7 @@
         public bool IsModerator => Roles.Contains(RoleEnum.moderator);
 
         public bool IsBlocked { get; set; }
-        public object Number { get; set; }
+        public int Number { get; set; }
     }
 
 }
