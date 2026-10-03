@@ -13,7 +13,7 @@ namespace ROTGBot.Service
         private readonly IRepository<News> _newsRepo = newsRepo;
         private readonly IRepository<NewsMessage> _newsMessageRepo = newsMessageRepo;
 
-        public async Task AddNewMessageForNews(long messageId, Guid userNewsId, string text, CancellationToken cancellationToken)
+        public async Task AddNewMessageForNews(long? messageId, Guid userNewsId, string text, CancellationToken cancellationToken)
         {
             await _newsMessageRepo.AddAsync(new NewsMessage()
             {
@@ -141,9 +141,9 @@ namespace ROTGBot.Service
             await SetNewsStatus(id, null, "deleted", true, token);           
         }
 
-        public Task CreateNews(long chatId, Guid userId, long? groupId, long? threadId, string type, string title, CancellationToken token)
+        public async  Task<Contract.Model.News?> CreateNews(long chatId, Guid userId, long? groupId, long? threadId, string type, string title, CancellationToken token)
         {
-            return _newsRepo.AddAsync(new News()
+            var result = await  _newsRepo.AddAsync(new News()
             {
                 IsDeleted = false,
                 Id = Guid.NewGuid(),
@@ -157,6 +157,7 @@ namespace ROTGBot.Service
                 ThreadId = threadId,
                 CreatedDate = DateTime.Now
             }, true, token);
+            return Map(result);
         }
 
         public async Task<string> GetUserReport(Guid userId, CancellationToken token)
@@ -216,5 +217,6 @@ namespace ROTGBot.Service
 
             return result;
         }
+                
     }
 }

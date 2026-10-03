@@ -8,7 +8,7 @@ namespace ROTGBot.Db.Model
         [ColumnName("newsid")]
         public Guid NewsId { get; set; }
         [ColumnName("tgmessageid")]
-        public long TGMessageId { get; set; }
+        public long? TGMessageId { get; set; }
         
         [ColumnName("valuetext")]
         public string? TextValue { get; set; }

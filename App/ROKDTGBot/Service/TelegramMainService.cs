@@ -188,6 +188,12 @@ namespace ROTGBot.Service
                 buttonNumber = buttonNumber2;
             }
 
+            if (data.StartsWith("SendNewsChoiceMulti_") && int.TryParse(data.Split("_")[1], out int buttonNumber4))
+            {
+                data = "SendNewsChoiceMulti";
+                buttonNumber = buttonNumber4;
+            }
+
             if (data.StartsWith("SendAdditionalMessageChoice_") && int.TryParse(data.Split("_")[1], out int newsNumber3))
             {
                 data = "SendAdditionalMessageChoice";
@@ -223,6 +229,10 @@ namespace ROTGBot.Service
                                         (cl, chId, userNews, tk) => SendNewsChoiceHandle(cl, chId, user, userNews, buttonNumber.Value, tk), token),
                 "SendNews" => await SendWithCheckRights(client, user, chatId.Value, RoleEnum.user,
                                         (cl, chId, userNews, tk) => SendNewsHandle(cl, chId, userNews, tk), token),
+                "SendNewsChoiceMulti" => await SendWithCheckRights(client, user, chatId.Value, RoleEnum.user,
+                                        (cl, chId, userNews, tk) => SendNewsChoiceMultiHandle(cl, chId, user, userNews, buttonNumber.Value, tk), token),
+                "SendNewsMulti" => await SendWithCheckRights(client, user, chatId.Value, RoleEnum.user,
+                                        (cl, chId, userNews, tk) => SendNewsMultiHandle(cl, chId, userNews, tk), token),
                 "SendAdditionalMessageChoice" => await SendWithCheckRights(client, user, chatId.Value, RoleEnum.user,
                                         (cl, chId, userNews, tk) => SendAdditionalMessageChoiceHandle(cl, chId, user, userNews, newsNumber.Value, tk), token),
                 "SendAdditionalMessage" => await SendWithCheckRights(client, user, chatId.Value, RoleEnum.user,
@@ -232,9 +242,7 @@ namespace ROTGBot.Service
                 "SendModeratorRemember" => await SendWithCheckRights(client, user, chatId.Value, RoleEnum.user,
                                         (cl, chId, userNews, tk) => SendModeratorRememberHandle(cl, chId, userNews, tk), token),
                 "SendModeratorRememberDecline" => await SendWithCheckRights(client, user, chatId.Value, RoleEnum.user,
-                                        (cl, chId, userNews, tk) => SendModeratorRememberDeclineHandle(cl, chId, user, userNews, tk), token),
-                "ReSendNewsChoice" => await SendWithCheckRights(client, user, chatId.Value, RoleEnum.user,
-                                        (cl, chId, userNews, tk) => ReSendNewsChoiceHandle(cl, chId, user, userNews, tk), token),
+                                        (cl, chId, userNews, tk) => SendModeratorRememberDeclineHandle(cl, chId, user, userNews, tk), token),                
                 "ReSendNews" => await SendWithCheckRights(client, user, chatId.Value, RoleEnum.user,
                                         (cl, chId, userNews, tk) => ReSendNewsHandle(cl, chId, newsNumber.Value, userNews, tk), token),
                 "UserReport" => await SendWithCheckRights(client, user, chatId.Value, RoleEnum.user,
@@ -499,18 +507,6 @@ namespace ROTGBot.Service
             }
         }
 
-        private async Task ReSendNewsChoiceHandle(TelegramBotClient client, long chatId, Contract.Model.User user, News? userNews, CancellationToken token)
-        {
-            if (userNews != null)
-            {
-                await SendUserRemember(client, chatId, userNews, token);
-            }
-            else
-            {
-                await ReSendNewsMessageForUser(client, chatId, user, token);
-            }
-        }
-
         private async Task SendSwitchNotifyHandle(TelegramBotClient client, long chatId, Guid userId, CancellationToken token)
         {            
             var isNotify = await _userDataService.SwitchUserNotify(userId, token);
@@ -579,19 +575,22 @@ namespace ROTGBot.Service
             await NotifyModerators(client, userNews, token);
         }
 
-        private async Task ReSendNewsMessageAccepted(TelegramBotClient client, long chatId, int newsNumber, News userNews, CancellationToken token)
+        private async Task ReSendNewsMessageAccepted(TelegramBotClient client, Guid userId, long chatId, int newsNumber, News userNews, CancellationToken token)
         {
-            1
-
-            var messages = await _newsDataService.GetNewsMessages(userNews.Id, token);
-
-            if (messages.Count == 0)
+            var news = await _newsDataService.GetNewsByNumber(newsNumber, token);
+            if(news ==  null)
             {
-                await client.SendMessageAsync(chatId, "Обращение создано некорректно, отправьте не менее одного сообщения", cancellationToken: token);
-                return;
+                await client.SendMessageAsync(chatId, "Новость не найдена", cancellationToken: token);
             }
 
-            
+            if(news.UserId != userId)
+            {
+                await client.SendMessageAsync(chatId, "Повторно отправить можно только свое обращение", cancellationToken: token);
+            }
+
+            await _newsDataService.SetNewsAccepted(news.Id, token);
+            await client.SendMessageAsync(chatId, "Обращение принято в обработку", cancellationToken: token);
+            await NotifyModerators(client, news, token);
         }
 
         private async Task NotifyModerators(TelegramBotClient client, News userNews, CancellationToken token)
@@ -780,11 +779,6 @@ namespace ROTGBot.Service
         private static async Task ApproveNewsMessageNotFound(TelegramBotClient client, long chatId)
         {
             await client.SendMessageAsync(chatId, "Нет неотправленных обращений");
-        }
-
-        private async Task ReSendNewsMessageForUser(TelegramBotClient client, long chatId, Contract.Model.User user, CancellationToken token)
-        {
-            1
         }
 
         private async Task SendNewsMessageForUser(TelegramBotClient client, long chatId, int buttonNumber, Contract.Model.User user, CancellationToken token)
@@ -1168,11 +1162,15 @@ namespace ROTGBot.Service
             foreach (var button in buttons)
             {
                 var buttonName = button.ButtonName ?? $"{button.ChatName}:{button.ThreadName}";
-                var buttonSend = new InlineKeyboardButton(buttonName)
+                var buttonSendMulti = new InlineKeyboardButton(buttonName)
+                {
+                    CallbackData = $"SendNewsChoiceMulti_{button.ButtonNumber}"
+                };
+                var buttonSend = new InlineKeyboardButton($"{buttonName} (несколько сообщений)")
                 {
                     CallbackData = $"SendNewsChoice_{button.ButtonNumber}"
                 };
-                sendButtons.Add([buttonSend]);
+                sendButtons.Add([buttonSend, buttonSendMulti]);
             }
 
             sendButtons.Add([new InlineKeyboardButton("Отчёт по отправленным обращениям")
