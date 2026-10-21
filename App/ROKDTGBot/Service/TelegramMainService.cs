@@ -162,7 +162,8 @@ namespace ROTGBot.Service
             int? buttonNumber = null;
             Guid? userIdn = null;
             int offset = 0;
-            
+            int? userNumber = null;
+
             if (data.StartsWith("ApproveNews_") && Guid.TryParse(data.Split("_")[1], out Guid newsId1))
             {
                 data = "ApproveNews";
@@ -185,6 +186,12 @@ namespace ROTGBot.Service
             {
                 data = "ApproveNewsChoice";
                 offset = offset1;
+            }
+
+            if (data.StartsWith("ApproveUserDemand_") && int.TryParse(data.Split("_")[1], out int userNumber1))
+            {
+                data = "ApproveUserDemand";
+                userNumber = userNumber1;
             }
 
             var roles = user.Roles;
@@ -219,7 +226,7 @@ namespace ROTGBot.Service
                 "ViewDemandUsers" => await SendWithCheckRights(client, user, chatId.Value, RoleEnum.administrator,
                                         (cl, chId, userNews, tk) => SendViewDemandUsersHandle(cl, chId, user, userNews, tk), token),
                 "ApproveUserDemand" => await SendWithCheckRights(client, user, chatId.Value, RoleEnum.administrator,
-                                        (cl, chId, userNews, tk) => SendApproveUserDemandHandle(cl, chId, user, userNews, userIdn, tk), token),
+                                        (cl, chId, userNews, tk) => SendApproveUserDemandHandle(cl, chId, user, userNews, userNumber, tk), token),
                 "AddAdminChoice" => await SendWithCheckRights(client, user, chatId.Value,  RoleEnum.administrator,
                                         (cl, chId,  userNews, tk) => SendAddAdminChoiceHandle(cl, chId, user, userNews,  tk), token),
                 "AddModeratorChoice" => await SendWithCheckRights(client, user, chatId.Value,  RoleEnum.administrator,
@@ -271,6 +278,13 @@ namespace ROTGBot.Service
                 _ => await SendWithCheckRights(client, user, chatId.Value,  RoleEnum.user,
                                         (cl, chId,  userNews, tk) => SendUserNotImplemented(cl, chId), token),
             };
+        }
+
+       
+
+        private async Task SendApproveUserDemandHandle(TelegramBotClient cl, long chId, Contract.Model.User user, News? userNews, int? userNumber, CancellationToken tk)
+        {
+            throw new NotImplementedException();
         }
 
         private async Task DeleteModeratorDeclineHandle(TelegramBotClient cl, Guid userId, long chId, News? userNews, CancellationToken tk)
@@ -468,6 +482,28 @@ namespace ROTGBot.Service
             {
                 await EditButtonMessageNotFound(client, chatId);
             }
+        }
+
+        private async Task SendViewUserRolesDeclineHandle(TelegramBotClient client, long chatId, Contract.Model.User user, News? userNews, CancellationToken token)
+        {
+            if (userNews != null)
+            {
+                await SendViewUserRolesDecline(client, user.Id, chatId, userNews, token);
+            }
+            else
+            {
+                await SendViewUserRolesDeclineMessageNotFound(client, chatId);
+            }
+        }
+
+        private async Task SendViewUserRolesDeclineMessageNotFound(TelegramBotClient client, long chatId)
+        {
+            throw new NotImplementedException();
+        }
+
+        private async Task SendViewUserRolesDecline(TelegramBotClient client, Guid id, long chatId, News userNews, CancellationToken token)
+        {
+            throw new NotImplementedException();
         }
 
         private async Task BlockUserDeclineHandle(TelegramBotClient client, Guid moderatorId, long chatId, News? userNews, CancellationToken token)
@@ -1467,8 +1503,6 @@ namespace ROTGBot.Service
             await client.SendMessageAsync(chatId, $"Заявки на добавление:\r\n{string.Join("\r\n", demands.Select(s => $"{s.Number}:{s.TGLogin}({s.Name})"))}",
                 cancellationToken: token);
         }
-
-
         
         private async Task SendEditButtonForAdminRemember(TelegramBotClient client, long chatId, CancellationToken token)
         {
