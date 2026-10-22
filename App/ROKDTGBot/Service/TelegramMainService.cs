@@ -204,9 +204,30 @@ namespace ROTGBot.Service
                                         (cl, chId,  userNews, tk) => EditButtonHandle(cl, userId, chId, userNews,  tk), token),
                 "EditButtonDecline" => await SendWithCheckRights(client, user, chatId.Value,  callbackQuery.Id, RoleEnum.administrator,
                                         (cl, chId,  userNews, tk) => EditButtonDeclineHandle(cl, userId, chId, userNews,  tk), token),
+                "UserSearchByNewsChoice" => await SendWithCheckRights(client, user, chatId.Value, callbackQuery.Id, RoleEnum.moderator,
+                                        (cl, chId, userNews, tk) => SendUserSearchByNewsChoiceHandle(cl, chId, user, userNews, tk), token),
+                "UserSearchByNews" => await SendWithCheckRights(client, user, chatId.Value, callbackQuery.Id, RoleEnum.moderator,
+                                        (cl, chId, userNews, tk) => UserSearchByNewsHandle(cl, userId, chId, userNews, tk), token),
+                "UserSearchByNewsDecline" => await SendWithCheckRights(client, user, chatId.Value, callbackQuery.Id, RoleEnum.administrator,
+                                        (cl, chId, userNews, tk) => UserSearchByNewsDeclineHandle(cl, userId, chId, userNews, tk), token),
                 _ => await SendWithCheckRights(client, user, chatId.Value,  callbackQuery.Id, RoleEnum.user,
                                         (cl, chId,  userNews, tk) => SendUserNotImplemented(cl, chId), token),
             };
+        }
+
+        private async Task UserSearchByNewsDeclineHandle(TelegramBotClient cl, object userId, long chId, News? userNews, CancellationToken tk)
+        {
+            throw new NotImplementedException();
+        }
+
+        private async Task UserSearchByNewsHandle(TelegramBotClient cl, object userId, long chId, News? userNews, CancellationToken tk)
+        {
+            throw new NotImplementedException();
+        }
+
+        private async Task SendUserSearchByNewsChoiceHandle(TelegramBotClient cl, long chId, object user, News? userNews, CancellationToken tk)
+        {
+            throw new NotImplementedException();
         }
 
         private async Task SendNewsSearchByNumberChoiceHandle(TelegramBotClient cl, long chId, Contract.Model.User user, News? userNews, CancellationToken tk)
