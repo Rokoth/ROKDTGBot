@@ -1,7 +1,6 @@
 ﻿using ROTGBot.Db.Interface;
 using ROTGBot.Db.Model;
 using System.Data;
-using Telegram.BotAPI.AvailableTypes;
 
 namespace ROTGBot.Service
 {
@@ -9,10 +8,10 @@ namespace ROTGBot.Service
     {
         private readonly IRepository<NewsButton> _newsButtonRepo = newsButtonRepo;
 
-        public async Task AddNewButton(Message message, CancellationToken cancellationToken)
+        public async Task<bool> AddNewButton(long chatId, int? threadId, string chatName, string? threadName, CancellationToken cancellationToken)
         {
-            var chatId = message.Chat.Id;
-            var threadId = message.MessageThreadId;
+            //var chatId = message.Chat.Id;
+            //var threadId = message.MessageThreadId;
 
             var exists = await _newsButtonRepo.GetAsync(new Filter<NewsButton>()
             {
@@ -27,23 +26,26 @@ namespace ROTGBot.Service
 
             if (exists.Count == 0)
             {
-                var forumTopic = message.ForumTopicCreated ?? message.ReplyToMessage?.ForumTopicCreated;
+                //var forumTopic = message.ForumTopicCreated ?? message.ReplyToMessage?.ForumTopicCreated;
 
-                if (forumTopic != null)
+                if (threadName != null)
                 {
                     await _newsButtonRepo.AddAsync(new NewsButton()
                     {
                         ChatId = chatId,
-                        ChatName = message.Chat.Title ?? $"{message.Chat.FirstName} {message.Chat.LastName}",
+                        //ChatName = message.Chat.Title ?? $"{message.Chat.FirstName} {message.Chat.LastName}",
+                        ChatName = chatName,
                         Id = Guid.NewGuid(),
                         IsDeleted = false,
                         ThreadId = threadId,
-                        ThreadName = forumTopic.Name,
+                        ThreadName = threadName,
                         ToSend = false,
                         ButtonNumber = allButtons.Count != 0 ? allButtons.Max(s => s.ButtonNumber) + 1 : 1
                     }, true, cancellationToken);
                 }
             }
+
+            return true;
         }
 
         public async Task<List<Contract.Model.NewsButton>> GetActiveButtons(CancellationToken token)

@@ -241,5 +241,10 @@ namespace ROTGBot.Service
         {
             throw new NotImplementedException();
         }
+
+        public Task<Contract.Model.News?> GetNewsByNumber(int? newsNumber, CancellationToken token)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

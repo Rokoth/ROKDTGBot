@@ -8,7 +8,10 @@
         /// <summary>
         /// Токен
         /// </summary>
-        public string Token { get; set; } = "";
-        public string ServerAddress { get; set; }
+        public string Token { get; set; } = string.Empty;
+        /// <summary>
+        /// Адрес сервера (прокси) Телеграм
+        /// </summary>
+        public string ServerAddress { get; set; } = string.Empty;
     }
 }

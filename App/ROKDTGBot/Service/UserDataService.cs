@@ -124,5 +124,10 @@ namespace ROTGBot.Service
             await _userRepo.UpdateAsync(user, true, token);
             return user.IsNotify;
         }
+
+        public Task<Contract.Model.User> GetUser(Guid userId, CancellationToken token)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

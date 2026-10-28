@@ -110,7 +110,11 @@ namespace ROTGBot.Service
 
             if (user.IsAdmin && message.IsTopicMessage == true)
             {
-                await _buttonsDataService.AddNewButton(message, cancellationToken);
+                await _buttonsDataService.AddNewButton(message.Chat.Id, 
+                    message.MessageThreadId,
+                    message.Chat.Title ?? $"{message.Chat.FirstName} {message.Chat.LastName}",
+                    (message.ForumTopicCreated ?? message.ReplyToMessage?.ForumTopicCreated).Name, 
+                    cancellationToken);
             }            
 
             if (message.Text == "/start")
@@ -238,7 +242,7 @@ namespace ROTGBot.Service
                 "AnswerNewsChoice" => await SendWithCheckRights(client, user, chatId, RoleEnum.moderator,
                                         (cl, chId, userNews, tk) => SendAnswerNewsChoiceHandle(cl, chId, user, userNews, tk), token),
                 "AnswerNews" => await SendWithCheckRights(client, user, chatId, RoleEnum.moderator,
-                                        (cl, chId, userNews, tk) => SendAnswerNewsHandle(cl, userId, chId, newsId.Value, tk), token),
+                                        (cl, chId, userNews, tk) => SendAnswerNewsHandle(cl, userId, chId, userNews, tk), token),
                 "SearchNewsChoice" => await SendWithCheckRights(client, user, chatId, RoleEnum.moderator,
                                         (cl, chId, userNews, tk) => SearchNewsChoiceHandle(cl, chId, user, userNews, tk), token),                
                 "SearchNews" => await SendWithCheckRights(client, user, chatId, RoleEnum.moderator,
